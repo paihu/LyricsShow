@@ -90,6 +90,29 @@ const calcImageSize = (
   return size;
 };
 
+const calcTime = (timeStr: string) => {
+  return timeStr
+    .split(":")
+    .reverse()
+    .reduce((total, current, index) => {
+      return total + parseFloat(current) * 60 ** index;
+    }, 0);
+};
+
+const calcHighlightIndex = (lyrics: string[], time: number) => {
+  let index = -1;
+  lyrics.forEach((str, idx) => {
+    const matched = str.match(/\[([\d.:]+)\]/);
+    if (matched) {
+      const current = calcTime(matched[1]);
+      if (current < time) {
+        index = idx;
+      }
+    }
+  });
+  return index;
+};
+
 /**
  * global objects
  */
@@ -101,6 +124,7 @@ const obj: {
   lyrics: string[];
   lyricsLayout: ITextLayout[];
   lyricsImage?: IJSImage | null;
+  lyricsHighlightImage?: IJSImage | null;
   lyricsOrder: (LyricsFileType | LyricsTags)[];
   lyricsSearchPath: string;
   padding: number;
@@ -192,6 +216,31 @@ const generateLyricsImage = () => {
     obj.lyricsImage.ReleaseGraphics();
   }
 };
+const generateLyricsHighlightImage = () => {
+  obj.lyricsHighlightImage?.Dispose();
+  const current = fb.PlaybackTime;
+  const highlightIndex = calcHighlightIndex(obj.lyrics, current);
+
+  const hight =
+    obj.lyricsLayout.reduce((total, current) => {
+      return total + current.CalcTextHeight(obj.width);
+    }, 0) + obj.height;
+  if (hight > 0 && obj.width > 0) {
+    obj.lyricsHighlightImage = utils.CreateImage(obj.width, hight);
+    const lyricsGr = obj.lyricsHighlightImage.GetGraphics();
+
+    let y = obj.height / 2;
+    obj.lyrics.forEach((_, index) => {
+      const layout = obj.lyricsLayout[index];
+      const h = layout.CalcTextHeight(obj.width);
+      if (index === highlightIndex) {
+        renderLyric(lyricsGr, layout, 0, y, obj.width, h, colors.highlight);
+      }
+      y += h;
+    });
+    obj.lyricsHighlightImage.ReleaseGraphics();
+  }
+};
 const generateLyricsLayout = (str: string) => {
   return utils.CreateTextLayout(
     str,
@@ -251,7 +300,8 @@ const renderLyric = (
   x: number,
   y: number,
   w: number,
-  h: number
+  h: number,
+  colour = colors.main
 ) => {
   if (LyricsView.shadow.enabled) {
     gr.WriteTextLayout(
@@ -263,7 +313,7 @@ const renderLyric = (
       h
     );
   }
-  gr.WriteTextLayout(layout, colors.main, x, y, w, h);
+  gr.WriteTextLayout(layout, colour, x, y, w, h);
 };
 const renderLyrics = (gr: IJSGraphics) => {
   if (!obj.lyricsImage) return;
@@ -286,6 +336,18 @@ const renderLyrics = (gr: IJSGraphics) => {
     obj.width,
     obj.height
   );
+  if (obj.lyricsHighlightImage)
+    gr.DrawImage(
+      obj.lyricsHighlightImage,
+      0,
+      0,
+      obj.width,
+      obj.height,
+      0,
+      y > 0 ? y : 0,
+      obj.width,
+      obj.height
+    );
 };
 
 /**
@@ -320,6 +382,7 @@ const on_size = () => {
   obj.height = window.Height;
   obj.width = window.Width;
   generateLyricsImage();
+  generateLyricsHighlightImage();
 };
 const on_mouse_wheel = (step: number) => {
   obj.step -= step;
@@ -344,6 +407,7 @@ const init = () => {
   window.Repaint();
 };
 const mainLoop = () => {
+  generateLyricsHighlightImage();
   window.Repaint();
 };
 
