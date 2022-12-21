@@ -13,11 +13,26 @@ type LyricsTags = "LYRICS" | "UNSYNCED LYRICS";
 type LyricsFileType = "txt" | "lrc";
 
 const getLyrics = (handle: IMetadbHandle) => {
-  const lyrics: string[] = [];
+  const lyrics: {
+    raw: string[];
+    view: string[];
+    time: number[];
+  } = { raw: [], view: [], time: [] };
   const fileInfo = handle.GetFileInfo();
   try {
     obj.lyricsOrder.forEach((type) => {
-      if (lyrics.length > 0) {
+      if (lyrics.raw.length > 0) {
+        lyrics.view = lyrics.raw.map((line) => {
+          return line.replace(TimeTagAllRe, "");
+        });
+        lyrics.time = lyrics.raw.map((line) => {
+          const matched = line.match(TimeTagRe);
+          if (!matched) {
+            return -1;
+          } else {
+            return timeTagToTime(matched[1]);
+          }
+        });
         return lyrics;
       }
       switch (type) {
@@ -27,7 +42,9 @@ const getLyrics = (handle: IMetadbHandle) => {
           if (lyricsIdx != -1) {
             const count = fileInfo.MetaValueCount(lyricsIdx);
             for (var i = 0; i < count; i++) {
-              lyrics.push(...fileInfo.MetaValue(lyricsIdx, i).split(/\r?\n/));
+              lyrics.raw.push(
+                ...fileInfo.MetaValue(lyricsIdx, i).split(/\r?\n/)
+              );
             }
           }
           break;
@@ -45,7 +62,7 @@ const getLyrics = (handle: IMetadbHandle) => {
             const lines = utils
               .ReadTextFile(path, utils.DetectCharset(path))
               .split(/\r?\n/);
-            lyrics.push(...lines);
+            lyrics.raw.push(...lines);
           }
           break;
       }
@@ -123,15 +140,11 @@ const timeToTimeTag = (time: number) => {
   )}`;
 };
 
-const calcHighlightIndex = (lyrics: string[], time: number) => {
+const calcHighlightIndex = (lyricTimes: number[], time: number) => {
   let index = -1;
-  lyrics.forEach((str, idx) => {
-    const matched = str.match(TimeTagRe);
-    if (matched) {
-      const current = timeTagToTime(matched[1]);
-      if (current < time) {
-        index = idx;
-      }
+  lyricTimes.forEach((current, idx) => {
+    if (current >= 0 && current < time) {
+      index = idx;
     }
   });
   return index;
@@ -145,7 +158,12 @@ const obj: {
   height: number;
   width: number;
   albumArt?: IJSImage | null;
-  lyrics: string[];
+  lyrics: {
+    raw: string[];
+    view: string[];
+    time: number[];
+  };
+
   lyricsUnsyncedHighlight: boolean;
   lyricsIsSync: boolean;
   lyricsLayout: ITextLayout[];
@@ -162,7 +180,7 @@ const obj: {
 } = {
   height: 0,
   width: 0,
-  lyrics: [],
+  lyrics: { raw: [], view: [], time: [] },
   lyricsIsSync: false,
   lyricsUnsyncedHighlight: window.GetProperty(
     "Panel.Lyrics.Unsynced.Highlight",
@@ -255,8 +273,8 @@ const loadTrackObj = (handle: IMetadbHandle) => {
   obj.albumArt?.Dispose();
   obj.albumArt = handle.GetAlbumArtEmbedded();
   obj.lyrics = getLyrics(handle);
-  obj.lyricsIsSync = obj.lyrics.some((str) => {
-    return str.match(TimeTagRe);
+  obj.lyricsIsSync = obj.lyrics.time.some((time) => {
+    return time >= 0;
   });
   generateLyricsLayouts();
   generateLyricsImage();
@@ -272,7 +290,7 @@ const releaseTrackObj = () => {
   obj.lyricsImage?.Dispose();
   obj.lyricsImage = null;
 
-  obj.lyrics = [];
+  obj.lyrics = { raw: [], view: [], time: [] };
 };
 
 const generateLyricsShadowImage = () => {
@@ -326,7 +344,7 @@ const generateLyricsImage = () => {
 const generateLyricsHighlightImage = () => {
   obj.lyricsHighlightImage?.Dispose();
   const current = fb.PlaybackTime;
-  const highlightIndex = calcHighlightIndex(obj.lyrics, current);
+  const highlightIndex = calcHighlightIndex(obj.lyrics.time, current);
 
   const hight =
     obj.lyricsLayout.reduce((total, current) => {
@@ -337,7 +355,7 @@ const generateLyricsHighlightImage = () => {
     const lyricsGr = obj.lyricsHighlightImage.GetGraphics();
 
     let y = obj.height / 2;
-    obj.lyrics.forEach((_, index) => {
+    obj.lyrics.view.forEach((_, index) => {
       const layout = obj.lyricsLayout[index];
       const h = layout.CalcTextHeight(obj.width);
       if (index === highlightIndex) {
@@ -363,9 +381,7 @@ const generateLyricsLayout = (str: string) => {
 };
 const generateLyricsLayouts = () => {
   releaseLyricsLayouts(obj.lyricsLayout);
-  obj.lyricsLayout = obj.lyrics.map((str) =>
-    generateLyricsLayout(str.replace(TimeTagAllRe, ""))
-  );
+  obj.lyricsLayout = obj.lyrics.view.map((str) => generateLyricsLayout(str));
 };
 const releaseLyricsLayouts = (arr: ITextLayout[]) => {
   arr.forEach((layout) => layout.Dispose());
