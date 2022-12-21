@@ -17,7 +17,8 @@ const getLyrics = (handle: IMetadbHandle) => {
     raw: string[];
     view: string[];
     time: number[];
-  } = { raw: [], view: [], time: [] };
+    y: number[];
+  } = { raw: [], view: [], time: [], y: [] };
   const fileInfo = handle.GetFileInfo();
   try {
     obj.lyricsOrder.forEach((type) => {
@@ -137,9 +138,13 @@ const timeToTimeTag = (time: number) => {
   const sec = Math.floor(time % 60).toString();
   const min = Math.floor((time % 3600) / 60).toString();
   const hour = Math.floor(time / 3600).toString();
-  return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding03(
-    msec
-  )}`;
+  if (hour !== "0") {
+    return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding03(
+      msec
+    )}`;
+  } else {
+    return `${padding02(min)}:${padding02(sec)}.${padding03(msec)}`;
+  }
 };
 
 const calcHighlightIndex = (lyricTimes: number[], time: number) => {
@@ -164,6 +169,7 @@ const obj: {
     raw: string[];
     view: string[];
     time: number[];
+    y: number[];
   };
 
   lyricsUnsyncedHighlight: boolean;
@@ -182,7 +188,7 @@ const obj: {
 } = {
   height: 0,
   width: 0,
-  lyrics: { raw: [], view: [], time: [] },
+  lyrics: { raw: [], view: [], time: [], y: [] },
   lyricsIsSync: false,
   lyricsUnsyncedHighlight: window.GetProperty(
     "Panel.Lyrics.Unsynced.Highlight",
@@ -252,25 +258,24 @@ const LyricsView = {
   },
 };
 
-const setScrollPosition = (step: number) => {
+const calcCurrentPosition = () => {
   const current = fb.PlaybackTime;
   const total = fb.PlaybackLength;
-  if (total > 0 && obj.lyricsImage) {
+  if (!obj.lyricsImage || total === 0) return;
+  return (obj.lyricsImage.Height - obj.height) * (current / total);
+};
+const setScrollPosition = (step: number) => {
+  const currentPosition = calcCurrentPosition();
+  if (currentPosition) {
     obj.step -= step;
-    if (
-      (obj.lyricsImage.Height - obj.height) * (current / total) <
-      -obj.step * obj.stepHight
-    ) {
-      obj.step =
-        -((obj.lyricsImage.Height - obj.height) * (current / total)) /
-        obj.stepHight;
+    if (currentPosition < -obj.step * obj.stepHight) {
+      obj.step = -currentPosition / obj.stepHight;
     } else if (
-      ((obj.lyricsImage.Height - obj.height) * (total - current)) / total <
+      obj.lyricsHighlightImage!.Height - obj.height - currentPosition <
       obj.step * obj.stepHight
     ) {
       obj.step =
-        ((obj.lyricsImage.Height - obj.height) * (total - current)) /
-        total /
+        (obj.lyricsHighlightImage!.Height - obj.height - currentPosition) /
         obj.stepHight;
     }
   }
@@ -285,6 +290,7 @@ const loadTrackObj = (handle: IMetadbHandle) => {
     return time >= 0;
   });
   generateLyricsLayouts();
+  calcLyricsLineY();
   generateLyricsImage();
   generateLyricsShadowImage();
 };
@@ -298,7 +304,7 @@ const releaseTrackObj = () => {
   obj.lyricsImage?.Dispose();
   obj.lyricsImage = null;
 
-  obj.lyrics = { raw: [], view: [], time: [] };
+  obj.lyrics = { raw: [], view: [], time: [], y: [] };
 };
 
 const generateLyricsShadowImage = () => {
@@ -320,12 +326,16 @@ const generateLyricsShadowImage = () => {
     obj.lyricsShadowImage.ReleaseGraphics();
   }
 };
+const calcLyricsImageHeight = () => {
+  return (
+    obj.lyrics.y[obj.lyrics.raw.length - 1] +
+    obj.lyricsLayout[obj.lyrics.raw.length - 1].CalcTextHeight(obj.width) +
+    obj.height
+  );
+};
 const generateLyricsImage = () => {
   obj.lyricsImage?.Dispose();
-  const hight =
-    obj.lyricsLayout.reduce((total, current) => {
-      return total + current.CalcTextHeight(obj.width);
-    }, 0) + obj.height;
+  const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsImage = utils.CreateImage(obj.width, hight);
     const lyricsGr = obj.lyricsImage.GetGraphics();
@@ -351,26 +361,26 @@ const generateLyricsImage = () => {
 };
 const generateLyricsHighlightImage = () => {
   obj.lyricsHighlightImage?.Dispose();
+  obj.lyricsHighlightImage = null;
   const current = fb.PlaybackTime;
   const highlightIndex = calcHighlightIndex(obj.lyrics.time, current);
+  if (highlightIndex === -1) return;
 
-  const hight =
-    obj.lyricsLayout.reduce((total, current) => {
-      return total + current.CalcTextHeight(obj.width);
-    }, 0) + obj.height;
+  const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsHighlightImage = utils.CreateImage(obj.width, hight);
     const lyricsGr = obj.lyricsHighlightImage.GetGraphics();
 
     let y = obj.height / 2;
-    obj.lyrics.view.forEach((_, index) => {
-      const layout = obj.lyricsLayout[index];
-      const h = layout.CalcTextHeight(obj.width);
-      if (index === highlightIndex) {
-        renderLyric(lyricsGr, layout, 0, y, obj.width, h, colors.highlight);
-      }
-      y += h;
-    });
+    renderLyric(
+      lyricsGr,
+      obj.lyricsLayout[highlightIndex],
+      0,
+      y + obj.lyrics.y[highlightIndex],
+      obj.width,
+      obj.lyricsLayout[highlightIndex].CalcTextHeight(obj.width),
+      colors.highlight
+    );
     obj.lyricsHighlightImage.ReleaseGraphics();
   }
 };
@@ -390,6 +400,15 @@ const generateLyricsLayout = (str: string) => {
 const generateLyricsLayouts = () => {
   releaseLyricsLayouts(obj.lyricsLayout);
   obj.lyricsLayout = obj.lyrics.view.map((str) => generateLyricsLayout(str));
+};
+const calcLyricsLineY = () => {
+  obj.lyrics.y = [0];
+  for (var i = 0; i < obj.lyricsLayout.length; i++) {
+    const layout = obj.lyricsLayout[i];
+    obj.lyrics.y.push(
+      obj.lyrics.y[obj.lyrics.y.length - 1] + layout.CalcTextHeight(obj.width)
+    );
+  }
 };
 const releaseLyricsLayouts = (arr: ITextLayout[]) => {
   arr.forEach((layout) => layout.Dispose());
@@ -439,12 +458,10 @@ const renderLyric = (
 };
 const renderLyrics = (gr: IJSGraphics) => {
   if (!obj.lyricsImage) return;
-  const total = fb.PlaybackLength;
-  const current = fb.PlaybackTime;
-  if (total === 0) return;
+  const currentPosition = calcCurrentPosition();
+  if (!currentPosition) return;
   const y = Math.min(
-    (obj.lyricsImage.Height - obj.height) * (current / total) +
-      obj.step * obj.stepHight,
+    currentPosition + obj.step * obj.stepHight,
     obj.lyricsImage.Height - obj.height
   );
   if (LyricsView.shadow.enabled && obj.lyricsShadowImage)
@@ -516,6 +533,7 @@ const on_playback_pause = (isPause: boolean) => {
 const on_size = () => {
   obj.height = window.Height;
   obj.width = window.Width;
+  calcLyricsLineY();
   generateLyricsImage();
   generateLyricsShadowImage();
   generateLyricsHighlightImage();
