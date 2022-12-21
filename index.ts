@@ -76,7 +76,8 @@ const calcImageSize = (
       if (size.height > dispH) {
         size.height = dispH;
         size.width = Math.ceil((dispH * image.Width) / image.Height);
-      } else {
+      }
+      if (size.width > dispW) {
         size.width = dispW;
         size.height = Math.ceil((dispW * image.Height) / image.Width);
       }
@@ -124,6 +125,7 @@ const obj: {
   lyrics: string[];
   lyricsLayout: ITextLayout[];
   lyricsImage?: IJSImage | null;
+  lyricsShadowImage?: IJSImage | null;
   lyricsHighlightImage?: IJSImage | null;
   lyricsOrder: (LyricsFileType | LyricsTags)[];
   lyricsSearchPath: string;
@@ -138,16 +140,21 @@ const obj: {
   lyrics: [],
   lyricsLayout: [],
   lyricsOrder: ["LYRICS", "UNSYNCED LYRICS", "lrc", "txt"],
-  lyricsSearchPath: ws.SpecialFolders.Item("Desktop"),
-  padding: 5,
+  lyricsSearchPath: window.GetProperty<string>(
+    "Panel.SearchPath",
+    ws.SpecialFolders.Item("Desktop")
+  ),
+  padding: window.GetProperty("Panel.Padding", 5),
   timer: -1,
-  interval: 50,
+  interval: window.GetProperty("Panel.Interval", 30),
   stepHight: 30,
   step: 0,
 };
 const fonts = {
   text: {
-    name: window.GetProperty("Panel.Font.Name", "Yu Gothic UI"),
+    name: utils.CheckFont(window.GetProperty("Panel.Font.Name", "Yu Gothic UI"))
+      ? window.GetProperty("Panel.Font.Name", "Yu Gothic UI")
+      : "Yu Gothic UI",
     size: window.GetProperty("Panel.Font.Size", 13),
     weight: window.GetProperty("Panel.Font.Bold", false)
       ? DWRITE_FONT_WEIGHT_BOLD
@@ -161,17 +168,30 @@ const fonts = {
 const colors = {
   main: RGB(190, 190, 190),
   highlight: RGB(255, 142, 196),
-  shadow: RGB(0, 0, 0),
+  shadow: RGBA(0, 0, 0, 255),
   background: RGB(76, 76, 76),
 };
 const LyricsView = {
+  background: {
+    angle: window.GetProperty("Panel.Background.Angle", 20),
+    opacity: window.GetProperty("Panel.Background.Alpha", 0.2),
+    keepAspectRatio: window.GetProperty(
+      "Panel.Background.KeepAspectRatio",
+      true
+    ),
+    stretch: window.GetProperty("Panel.Background.Stretch", true),
+  },
   fonts: fonts,
   colors: colors,
+  blur: {
+    enabled: false,
+    radius: 10,
+  },
   shadow: {
-    enabled: true,
+    enabled: window.GetProperty("Panel.Text.Shadow.Enabled", true),
     position: {
-      x: 2,
-      y: 2,
+      x: window.GetProperty("Panel.Text.Shadow.X", 2),
+      y: window.GetProperty("Panel.Text.Shadow.Y", 2),
     },
   },
 };
@@ -183,6 +203,7 @@ const loadTrackObj = (handle: IMetadbHandle) => {
   obj.lyrics = getLyrics(handle);
   generateLyricsLayouts();
   generateLyricsImage();
+  generateLyricsShadowImage();
 };
 const releaseTrackObj = () => {
   obj.albumArt?.Dispose();
@@ -197,6 +218,25 @@ const releaseTrackObj = () => {
   obj.lyrics = [];
 };
 
+const generateLyricsShadowImage = () => {
+  obj.lyricsShadowImage?.Dispose();
+  const hight =
+    obj.lyricsLayout.reduce((total, current) => {
+      return total + current.CalcTextHeight(obj.width);
+    }, 0) + obj.height;
+  if (hight > 0 && obj.width > 0) {
+    obj.lyricsShadowImage = utils.CreateImage(obj.width, hight);
+    const lyricsGr = obj.lyricsShadowImage.GetGraphics();
+
+    let y = obj.height / 2;
+    obj.lyricsLayout.forEach((layout) => {
+      const h = layout.CalcTextHeight(obj.width);
+      renderLyric(lyricsGr, layout, 0, y, obj.width, h, colors.shadow);
+      y += h;
+    });
+    obj.lyricsShadowImage.ReleaseGraphics();
+  }
+};
 const generateLyricsImage = () => {
   obj.lyricsImage?.Dispose();
   const hight =
@@ -277,8 +317,8 @@ const renderAlbumArt = (gr: IJSGraphics) => {
       obj.albumArt,
       obj.width,
       obj.height - obj.padding * 2,
-      true,
-      true
+      LyricsView.background.stretch,
+      LyricsView.background.keepAspectRatio
     )!;
     gr.DrawImage(
       obj.albumArt,
@@ -290,7 +330,8 @@ const renderAlbumArt = (gr: IJSGraphics) => {
       0,
       obj.albumArt.Width,
       obj.albumArt.Height,
-      0.3
+      LyricsView.background.opacity,
+      LyricsView.background.angle
     );
   }
 };
@@ -303,16 +344,6 @@ const renderLyric = (
   h: number,
   colour = colors.main
 ) => {
-  if (LyricsView.shadow.enabled) {
-    gr.WriteTextLayout(
-      layout,
-      colors.shadow,
-      x + LyricsView.shadow.position.x,
-      y + LyricsView.shadow.position.y,
-      w,
-      h
-    );
-  }
   gr.WriteTextLayout(layout, colour, x, y, w, h);
 };
 const renderLyrics = (gr: IJSGraphics) => {
@@ -325,12 +356,25 @@ const renderLyrics = (gr: IJSGraphics) => {
       obj.step * obj.stepHight,
     obj.lyricsImage.Height - obj.height
   );
+  if (LyricsView.shadow.enabled && obj.lyricsShadowImage)
+    gr.DrawImage(
+      obj.lyricsShadowImage,
+      0 + LyricsView.shadow.position.x,
+      obj.padding + LyricsView.shadow.position.y,
+      obj.width,
+      obj.height - obj.padding * 2,
+      0,
+      y > 0 ? y : 0,
+      obj.width,
+      obj.height
+    );
+
   gr.DrawImage(
     obj.lyricsImage,
     0,
-    0,
+    obj.padding,
     obj.width,
-    obj.height,
+    obj.height - obj.padding * 2,
     0,
     y > 0 ? y : 0,
     obj.width,
@@ -340,9 +384,9 @@ const renderLyrics = (gr: IJSGraphics) => {
     gr.DrawImage(
       obj.lyricsHighlightImage,
       0,
-      0,
+      obj.padding,
       obj.width,
-      obj.height,
+      obj.height - obj.padding * 2,
       0,
       y > 0 ? y : 0,
       obj.width,
@@ -382,17 +426,18 @@ const on_size = () => {
   obj.height = window.Height;
   obj.width = window.Width;
   generateLyricsImage();
+  generateLyricsShadowImage();
   generateLyricsHighlightImage();
 };
 const on_mouse_wheel = (step: number) => {
   obj.step -= step;
+  window.Repaint();
 };
 
 /**
  * init
  */
 const init = () => {
-  obj.lyricsSearchPath = "g:\\music\\lyrics\\";
   const db = fb.GetNowPlaying();
   if (db) {
     loadTrackObj(db);
