@@ -271,11 +271,11 @@ const setScrollPosition = (step: number) => {
     if (currentPosition < -obj.step * obj.stepHight) {
       obj.step = -currentPosition / obj.stepHight;
     } else if (
-      obj.lyricsHighlightImage!.Height - obj.height - currentPosition <
+      obj.lyricsImage!.Height - obj.height - currentPosition <
       obj.step * obj.stepHight
     ) {
       obj.step =
-        (obj.lyricsHighlightImage!.Height - obj.height - currentPosition) /
+        (obj.lyricsImage!.Height - obj.height - currentPosition) /
         obj.stepHight;
     }
   }
