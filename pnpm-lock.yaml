@@ -1,0 +1,46 @@
+lockfileVersion: 5.4
+
+specifiers:
+  '@types/activex-scripting': ^1.0.8
+  '@types/windows-script-host': ^5.8.3
+  typescript: ^4.9.4
+
+devDependencies:
+  '@types/activex-scripting': 1.0.8
+  '@types/windows-script-host': 5.8.3
+  typescript: 4.9.4
+
+packages:
+
+  /@types/activex-interop/0.0.3:
+    resolution: {integrity: sha512-RmOaiOBqyym0g2HcCRoqr2w9fK8QwL7x8b/855N4saqGfplZ1Rxiktn9t9I6ogwomSGGnMceB8ShX5vQ63Zriw==}
+    dev: true
+
+  /@types/activex-iwshruntimelibrary/0.0.3:
+    resolution: {integrity: sha512-o3Wdhd27jHtPnv/W+lN3HbM+op6iJCxvJstLxA//pnf8lqDR5y2utwP7f/6nRrQ62HJRBcEhxyO7CseJK1C5Ew==}
+    dependencies:
+      '@types/activex-interop': 0.0.3
+    dev: true
+
+  /@types/activex-scripting/1.0.8:
+    resolution: {integrity: sha512-i9xsID515p/tPFVCOZRiod7lN+eVfhmAproInZnGGn+IShImVRl+SqFO79DZ1z1OoYY+rjwu4WMxqEzB5ufZRw==}
+    dependencies:
+      '@types/activex-interop': 0.0.3
+      activex-helpers: 1.0.3
+    dev: true
+
+  /@types/windows-script-host/5.8.3:
+    resolution: {integrity: sha512-EUbTMPc4mCAiktRJ5yn+/AmOjlxQlZON7ZWRmM4cK0wKcPkfIeIq+1qj99KWPFULwyPmFAW1pmXL0LjRPYk1sQ==}
+    dependencies:
+      '@types/activex-iwshruntimelibrary': 0.0.3
+    dev: true
+
+  /activex-helpers/1.0.3:
+    resolution: {integrity: sha512-8xRCG4h5CJIcgV26EXWVfeaNxmtIV6+mhInKKF9SSP5xGKdFlUykIF5881SbDPD5d7UBo34CbMdyk9SGbMFC/w==}
+    dev: true
+
+  /typescript/4.9.4:
+    resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
