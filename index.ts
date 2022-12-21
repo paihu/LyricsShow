@@ -1,4 +1,5 @@
 const RGBRe = /^#[0-9a-fA-F]{6}$/;
+const TimeTagRe = /\[([\d.:]+)\]/;
 const parseRGB = (str: string): number | undefined => {
   if (!str.match(RGBRe)) return;
   return 0xff000000 & parseInt(str.substring(1), 16);
@@ -121,7 +122,7 @@ const timeToTimeTag = (time: number) => {
 const calcHighlightIndex = (lyrics: string[], time: number) => {
   let index = -1;
   lyrics.forEach((str, idx) => {
-    const matched = str.match(/\[([\d.:]+)\]/);
+    const matched = str.match(TimeTagRe);
     if (matched) {
       const current = timeTagToTime(matched[1]);
       if (current < time) {
@@ -141,6 +142,8 @@ const obj: {
   width: number;
   albumArt?: IJSImage | null;
   lyrics: string[];
+  lyricsUnsyncedHighlight: boolean;
+  lyricsIsSync: boolean;
   lyricsLayout: ITextLayout[];
   lyricsImage?: IJSImage | null;
   lyricsShadowImage?: IJSImage | null;
@@ -156,6 +159,11 @@ const obj: {
   height: 0,
   width: 0,
   lyrics: [],
+  lyricsIsSync: false,
+  lyricsUnsyncedHighlight: window.GetProperty(
+    "Panel.Lyrics.Unsynced.Highlight",
+    false
+  ),
   lyricsLayout: [],
   lyricsOrder: ["LYRICS", "UNSYNCED LYRICS", "lrc", "txt"],
   lyricsSearchPath: window.GetProperty<string>(
@@ -243,6 +251,9 @@ const loadTrackObj = (handle: IMetadbHandle) => {
   obj.albumArt?.Dispose();
   obj.albumArt = handle.GetAlbumArtEmbedded();
   obj.lyrics = getLyrics(handle);
+  obj.lyricsIsSync = obj.lyrics.some((str) => {
+    return str.match(TimeTagRe);
+  });
   generateLyricsLayouts();
   generateLyricsImage();
   generateLyricsShadowImage();
@@ -292,7 +303,17 @@ const generateLyricsImage = () => {
     let y = obj.height / 2;
     obj.lyricsLayout.forEach((layout) => {
       const h = layout.CalcTextHeight(obj.width);
-      renderLyric(lyricsGr, layout, 0, y, obj.width, h);
+      renderLyric(
+        lyricsGr,
+        layout,
+        0,
+        y,
+        obj.width,
+        h,
+        !obj.lyricsIsSync && obj.lyricsUnsyncedHighlight
+          ? colors.highlight
+          : colors.main
+      );
       y += h;
     });
     obj.lyricsImage.ReleaseGraphics();
