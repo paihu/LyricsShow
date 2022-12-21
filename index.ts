@@ -22,17 +22,6 @@ const getLyrics = (handle: IMetadbHandle) => {
   try {
     obj.lyricsOrder.forEach((type) => {
       if (lyrics.raw.length > 0) {
-        lyrics.view = lyrics.raw.map((line) => {
-          return line.replace(TimeTagAllRe, "");
-        });
-        lyrics.time = lyrics.raw.map((line) => {
-          const matched = line.match(TimeTagRe);
-          if (!matched) {
-            return -1;
-          } else {
-            return timeTagToTime(matched[1]);
-          }
-        });
         return lyrics;
       }
       switch (type) {
@@ -69,6 +58,19 @@ const getLyrics = (handle: IMetadbHandle) => {
     });
   } finally {
     fileInfo.Dispose();
+  }
+  if (lyrics.raw.length > 0) {
+    lyrics.view = lyrics.raw.map((line) => {
+      return line.replace(TimeTagAllRe, "");
+    });
+    lyrics.time = lyrics.raw.map((line) => {
+      const matched = line.match(TimeTagRe);
+      if (!matched) {
+        return -1;
+      } else {
+        return timeTagToTime(matched[1]);
+      }
+    });
   }
   return lyrics;
 };
@@ -214,10 +216,16 @@ const fonts = {
   },
 };
 const colors = {
-  main: RGB(190, 190, 190),
-  highlight: RGB(255, 142, 196),
-  shadow: RGBA(0, 0, 0, 255),
-  background: RGB(76, 76, 76),
+  main: window.GetProperty("Panel.Lyrics.Main.Color", RGB(190, 190, 190)),
+  highlight: window.GetProperty(
+    "Panel.Lyrics.Highlight.Color",
+    RGB(255, 142, 196)
+  ),
+  shadow: window.GetProperty("Panel.Lyrics.Shadow.Color", RGBA(0, 0, 0, 255)),
+  background: window.GetProperty(
+    "Panel.Lyrics.Background.Color",
+    RGB(76, 76, 76)
+  ),
 };
 const LyricsView = {
   background: {
