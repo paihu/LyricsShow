@@ -91,7 +91,7 @@ const calcImageSize = (
   return size;
 };
 
-const calcTime = (timeStr: string) => {
+const timeTagToTime = (timeStr: string) => {
   return timeStr
     .split(":")
     .reverse()
@@ -100,12 +100,30 @@ const calcTime = (timeStr: string) => {
     }, 0);
 };
 
+const padding02 = (str: string) => {
+  if (str.length >= 2) return str;
+  return ("0" + str).slice(-2);
+};
+const padding03 = (str: string) => {
+  if (str.length >= 3) return str;
+  return ("00" + str).slice(-3);
+};
+const timeToTimeTag = (time: number) => {
+  const msec = Math.floor((time % 1) * 1000).toString();
+  const sec = Math.floor(time % 60).toString();
+  const min = Math.floor((time % 3600) / 60).toString();
+  const hour = Math.floor(time / 3600).toString();
+  return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding03(
+    msec
+  )}`;
+};
+
 const calcHighlightIndex = (lyrics: string[], time: number) => {
   let index = -1;
   lyrics.forEach((str, idx) => {
     const matched = str.match(/\[([\d.:]+)\]/);
     if (matched) {
-      const current = calcTime(matched[1]);
+      const current = timeTagToTime(matched[1]);
       if (current < time) {
         index = idx;
       }
@@ -194,6 +212,30 @@ const LyricsView = {
       y: window.GetProperty("Panel.Text.Shadow.Y", 2),
     },
   },
+};
+
+const setScrollPosition = (step: number) => {
+  const current = fb.PlaybackTime;
+  const total = fb.PlaybackLength;
+  if (total > 0 && obj.lyricsImage) {
+    obj.step -= step;
+    if (
+      (obj.lyricsImage.Height - obj.height) * (current / total) <
+      -obj.step * obj.stepHight
+    ) {
+      obj.step =
+        -((obj.lyricsImage.Height - obj.height) * (current / total)) /
+        obj.stepHight;
+    } else if (
+      ((obj.lyricsImage.Height - obj.height) * (total - current)) / total <
+      obj.step * obj.stepHight
+    ) {
+      obj.step =
+        ((obj.lyricsImage.Height - obj.height) * (total - current)) /
+        total /
+        obj.stepHight;
+    }
+  }
 };
 
 const loadTrackObj = (handle: IMetadbHandle) => {
@@ -430,7 +472,7 @@ const on_size = () => {
   generateLyricsHighlightImage();
 };
 const on_mouse_wheel = (step: number) => {
-  obj.step -= step;
+  setScrollPosition(step);
   window.Repaint();
 };
 
