@@ -9,7 +9,7 @@ interface IContextMenuManager {
 
 interface IDropAction {
   Base: number;
-  Effefct: number;
+  Effect: number;
   Playlist: number;
   ToSelect: boolean;
 }
@@ -32,7 +32,7 @@ interface IFileInfo {
    */
   MetaFind(name: string): number;
   MetaName(idx: number): string;
-  MetaValue(idx: number, vidx: number): string;
+  MetaValue(idx: number, vIdx: number): string;
   MetaValueCount(idx: number): number;
 }
 
@@ -108,8 +108,8 @@ interface IJSGraphics {
     w: number,
     h: number,
     direction: number,
-    startnumber: number,
-    endnumber: number
+    startColour: number,
+    endColour: number
   );
   FillGradientRectangleAdvanced(
     startX: number,
@@ -154,7 +154,7 @@ interface IJSGraphics {
     startY: number,
     w: number,
     h: number,
-    verticalOfffset?: number
+    verticalOffset?: number
   );
 }
 
@@ -176,7 +176,7 @@ interface IJSImage {
 interface IMainMenuManager {
   BuildMenu(parentMenu: IMenuObj, baseId: number);
   Dispose();
-  ExedcuteById(id: number): boolean;
+  ExecuteById(id: number): boolean;
 }
 interface IMenuObj {
   /**
@@ -212,7 +212,7 @@ interface IMenuObj {
 interface IMetadbHandle {
   readonly FileCreated: number;
   readonly FileSize: number;
-  readonly LastMondified: number;
+  readonly LastModified: number;
   readonly Length: number;
   readonly Path: string;
   readonly RawPath: string;
@@ -283,20 +283,22 @@ interface ITextLayout {
   Dispose();
 }
 interface IThemeManager {
-  gr: IJSGraphics;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  GetThemenumber(propid: number): number;
-  IsThemePartDeffined(partId: number): boolean;
+  DrawThemeBackground(
+    gr: IJSGraphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  );
+  GetThemeColour(propId: number): number;
+  IsThemePartDefined(partId: number): boolean;
   SetPartAndStateID(partId: number, stateId?: number);
 }
 interface ITitleFormat {
   Dispose();
   Eval(): string;
   EvalActivePlaylistItem(playlistItemIndex: number): string;
-  EvalPlaylistItem(playlistIndex: number, playistItemIndex: number): string;
+  EvalPlaylistItem(playlistIndex: number, playlistItemIndex: number): string;
   EvalWithMetadb(handle: IMetadbHandle): string;
   EvalWithMetadbs(handleList: IMetadbHandleList): VBArray;
 }
@@ -314,7 +316,7 @@ interface ITooltip {
   Activate();
   Deactivate();
   /**
-   * Use if youwant multi-line tooltips.
+   * Use if you want multi-line tooltips.
    * @param w: maxWidth
    */
   SetMaxWidth(w: number);
@@ -440,7 +442,7 @@ interface utils {
     text: string,
     fontName: string,
     fontSize: number,
-    fontWeight?: numer,
+    fontWeight?: number,
     fontStyle?: number,
     fontStretch?: number,
     textAlignment?: number,
@@ -499,7 +501,7 @@ interface utils {
   ): string;
   IsFile(path: string): boolean;
   IsFolder(path: string): boolean;
-  IsKeyPressed(vley: number): boolean;
+  IsKeyPressed(vkey: number): boolean;
   ListFiles(folder: string, recursive: boolean): VBArray;
   ListFolders(folder: string, recursive: boolean): VBArray;
   ListFonts(): VBArray;
@@ -510,7 +512,7 @@ interface utils {
    *
    * @param prompt
    * @param title
-   * @param flags compine MessageBoxButtons,MessageBoxIcons
+   * @param flags combine MessageBoxButtons,MessageBoxIcons
    */
   MessageBox(
     prompt: string,
@@ -774,14 +776,14 @@ type on_run_cmd_async_done = (taskId: number) => void;
 type on_script_unload = () => void;
 type on_selection_changed = () => void;
 type on_size = () => void;
-type on_volume_change = (volume: nubmber) => void;
+type on_volume_change = (volume: number) => void;
 
 /**
  * helper
  */
 declare const pos2vol: (pos: number) => number;
 declare const vol2pos: (v: number) => number;
-declare const Point2Pixel: (pt: number, dpi: numnber) => number;
+declare const Point2Pixel: (pt: number, dpi: number) => number;
 declare const RGB: (r: number, g: number, b: number) => number;
 declare const RGBA: (r: number, g: number, b: number, a: number) => number;
 declare const toRGB: (colour: number) => number;
@@ -789,19 +791,19 @@ declare const getAlpha: (colour: number) => number;
 declare const getRed: (colour: number) => number;
 declare const getGreen: (colour: number) => number;
 declare const getBlue: (colour: number) => number;
-declare const setAlpha: (colour: number, a: numer) => number;
+declare const setAlpha: (colour: number, a: number) => number;
 declare const setRed: (colour: number, r: number) => number;
 declare const setGreen: (colour: number, g: number) => number;
 declare const setBlue: (colour: number, b: number) => number;
 declare const setBlue: (c1: number, c2: number, factor: number) => number;
 declare const Liminance: (colour: number) => number;
-declare const DetermineTextnumber: (background: number) => number;
-declare const DrawnumberedText: (
+declare const DetermineTextColour: (background: number) => number;
+declare const DrawColouredText: (
   gr: IJSGraphics,
   text: string,
   font: string,
   defaultColour: number,
-  x: numer,
+  x: number,
   y: number,
   w: number,
   h: number,
@@ -836,10 +838,10 @@ declare const DrawRectangle: (
   colour: number
 ) => void;
 declare const EnableMenuIf: (
-  condition: numer
+  condition: number
 ) => typeof MF_STRING | typeof MF_GRAYED;
 declare const CheckMenuIf: (
-  condition: numer
+  condition: number
 ) => typeof MF_CHECKED | typeof MF_STRING;
 declare const GetMenuFlags: (enabled: boolean, checked: boolean) => number;
 declare const CreateFontString: (
