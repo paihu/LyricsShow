@@ -1,5 +1,6 @@
 const RGBRe = /^#[0-9a-fA-F]{6}$/;
 const TimeTagRe = /\[([\d.:]+)\]/;
+const TimeTagAllRe = /\[([\d.:]+)\]/g;
 const TimeTagSplitRe = /[:.]/;
 const parseRGB = (str: string): number | undefined => {
   if (!str.match(RGBRe)) return;
@@ -7,7 +8,6 @@ const parseRGB = (str: string): number | undefined => {
 };
 
 const ws = new ActiveXObject("WScript.Shell");
-const fs = new ActiveXObject("Scripting.FileSystemObject");
 
 type LyricsTags = "LYRICS" | "UNSYNCED LYRICS";
 type LyricsFileType = "txt" | "lrc";
@@ -364,7 +364,7 @@ const generateLyricsLayout = (str: string) => {
 const generateLyricsLayouts = () => {
   releaseLyricsLayouts(obj.lyricsLayout);
   obj.lyricsLayout = obj.lyrics.map((str) =>
-    generateLyricsLayout(str.replace(/\[[0-9:.]+\]/g, ""))
+    generateLyricsLayout(str.replace(TimeTagAllRe, ""))
   );
 };
 const releaseLyricsLayouts = (arr: ITextLayout[]) => {
