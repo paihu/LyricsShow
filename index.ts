@@ -262,7 +262,25 @@ const calcCurrentPosition = () => {
   const current = fb.PlaybackTime;
   const total = fb.PlaybackLength;
   if (!obj.lyricsImage || total === 0) return;
-  return (obj.lyricsImage.Height - obj.height) * (current / total);
+  if (!obj.lyricsIsSync)
+    return (obj.lyricsImage.Height - obj.height) * (current / total);
+
+  const currentLine = obj.lyrics.time.reduce(
+    (acc, cur, index) => (cur === -1 ? acc : current > cur ? index : acc),
+    0
+  );
+  const nextLine = obj.lyrics.time.reduce(
+    (acc, cur, index) => (acc === -1 ? (current < cur ? index : acc) : acc),
+    -1
+  );
+  const delta =
+    (obj.lyrics.y[nextLine] || obj.lyricsImage.Height - obj.height) -
+    obj.lyrics.y[currentLine];
+  return (
+    obj.lyrics.y[currentLine] +
+    (delta * (current - obj.lyrics.time[currentLine])) /
+      ((obj.lyrics.time[nextLine] || total) - obj.lyrics.time[currentLine])
+  );
 };
 const setScrollPosition = (step: number) => {
   const currentPosition = calcCurrentPosition();
@@ -309,10 +327,7 @@ const releaseTrackObj = () => {
 
 const generateLyricsShadowImage = () => {
   obj.lyricsShadowImage?.Dispose();
-  const hight =
-    obj.lyricsLayout.reduce((total, current) => {
-      return total + current.CalcTextHeight(obj.width);
-    }, 0) + obj.height;
+  const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsShadowImage = utils.CreateImage(obj.width, hight);
     const lyricsGr = obj.lyricsShadowImage.GetGraphics();
@@ -327,6 +342,7 @@ const generateLyricsShadowImage = () => {
   }
 };
 const calcLyricsImageHeight = () => {
+  if (obj.lyrics.raw.length === 0) return 0;
   return (
     obj.lyrics.y[obj.lyrics.raw.length - 1] +
     obj.lyricsLayout[obj.lyrics.raw.length - 1].CalcTextHeight(obj.width) +
