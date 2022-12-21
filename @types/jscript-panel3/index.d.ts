@@ -279,7 +279,7 @@ interface ISelectionHolder {
   SetPlaylistTracking();
 }
 interface ITextLayout {
-  CalcTextHeight(maxWidth: number);
+  CalcTextHeight(maxWidth: number): number;
   Dispose();
 }
 interface IThemeManager {
