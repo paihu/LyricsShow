@@ -327,6 +327,7 @@ const releaseTrackObj = () => {
 
 const generateLyricsShadowImage = () => {
   obj.lyricsShadowImage?.Dispose();
+  obj.lyricsShadowImage = null;
   const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsShadowImage = utils.CreateImage(obj.width, hight);
@@ -351,6 +352,7 @@ const calcLyricsImageHeight = () => {
 };
 const generateLyricsImage = () => {
   obj.lyricsImage?.Dispose();
+  obj.lyricsImage = null;
   const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsImage = utils.CreateImage(obj.width, hight);
