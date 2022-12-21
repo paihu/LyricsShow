@@ -1,5 +1,6 @@
 const RGBRe = /^#[0-9a-fA-F]{6}$/;
 const TimeTagRe = /\[([\d.:]+)\]/;
+const TimeTagSplitRe = /[:.]/;
 const parseRGB = (str: string): number | undefined => {
   if (!str.match(RGBRe)) return;
   return 0xff000000 & parseInt(str.substring(1), 16);
@@ -26,7 +27,7 @@ const getLyrics = (handle: IMetadbHandle) => {
           if (lyricsIdx != -1) {
             const count = fileInfo.MetaValueCount(lyricsIdx);
             for (var i = 0; i < count; i++) {
-              lyrics.push(fileInfo.MetaValue(lyricsIdx, i));
+              lyrics.push(...fileInfo.MetaValue(lyricsIdx, i).split(/\r?\n/));
             }
           }
           break;
@@ -59,12 +60,12 @@ const calcImageSize = (
   image: IJSImage | null,
   dispW: number,
   dispH: number,
-  strech: boolean,
+  stretch: boolean,
   keepAspectRatio: boolean
 ) => {
   if (!image) return;
   let size: { x: number; y: number; width: number; height: number };
-  if (strech) {
+  if (stretch) {
     size = { x: 0, y: 0, width: dispW || 1, height: dispH || 1 };
     if (keepAspectRatio) {
       const scale = Math.min(dispH / image.Height, dispW / image.Width);
@@ -94,10 +95,13 @@ const calcImageSize = (
 
 const timeTagToTime = (timeStr: string) => {
   return timeStr
-    .split(":")
+    .split(TimeTagSplitRe)
     .reverse()
     .reduce((total, current, index) => {
-      return total + parseFloat(current) * 60 ** index;
+      if (index === 0) {
+        return total + parseInt(current, 10) / 10 ** current.length;
+      }
+      return total + parseInt(current, 10) * 60 ** (index - 1);
     }, 0);
 };
 
