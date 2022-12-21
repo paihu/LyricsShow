@@ -638,6 +638,145 @@ declare const window: Window & typeof globalThis;
 declare const RGB: (r: number, g: number, b: number) => number;
 
 /**
+ * callback
+ */
+type on_always_on_top_changed = (state: boolean) => void;
+type on_char = (code: number) => void;
+type on_colours_changed = () => void;
+type on_console_refresh = () => void;
+type on_cursor_follow_playback_changed = (state: boolean) => void;
+type on_download_file_done = (
+  path: string,
+  success: boolean,
+  errorText: string
+) => void;
+type on_drag_drop = (
+  action: IDropAction,
+  x: number,
+  y: number,
+  mask: number
+) => void;
+type on_drag_enter = (
+  action: IDropAction,
+  x: number,
+  y: number,
+  mask: number
+) => void;
+type on_drag_leave = () => void;
+type on_drag_over = (
+  action: IDropAction,
+  x: number,
+  y: number,
+  mask: number
+) => void;
+type on_dsp_preset_changed = () => void;
+type on_focus = (isFocus: boolean) => void;
+type on_font_changed = () => void;
+type on_get_album_art_done = (
+  handel: IMetadbHandle,
+  artId: number,
+  image: IJSImage
+) => void;
+type on_http_request_done = (
+  taskId: number,
+  success: boolean,
+  responseText: string
+) => void;
+type on_item_focus_change = (
+  playlistIndex: number,
+  from: number,
+  to: number
+) => void;
+type on_item_played = (handle: IMetadbHandle) => void;
+/**
+ * @vkey https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+ */
+type on_key_down = (vkey: number) => void;
+/**
+ * @vkey https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+ */
+type on_key_up = (vkey: number) => void;
+type on_library_items_added = (handleList: IMetadbHandleList) => void;
+type on_library_items_changed = (
+  handleList: IMetadbHandleList,
+  fromHook: boolean
+) => void;
+type on_library_items_removed = (handleList: IMetadbHandleList) => void;
+type on_library_items_removed = (handleList: IMetadbHandleList) => void;
+type on_load_image_done = (imagePath: string, image: IJSImage | null) => void;
+type on_locations_added = (
+  taskId: number,
+  handleList: IMetadbHandleList
+) => void;
+type on_main_menu = (index: number) => void;
+type on_metadb_changed = (
+  handleList: IMetadbHandleList,
+  fromHook: boolean
+) => void;
+type on_mouse_lbtn_dblclk = (x: number, y: number, mask: number) => void;
+type on_mouse_lbtn_down = (x: number, y: number, mask: number) => void;
+type on_mouse_lbtn_up = (x: number, y: number, mask: number) => void;
+type on_mouse_leave = () => void;
+type on_mouse_mbtn_dblclk = (x: number, y: number, mask: number) => void;
+type on_mouse_mbtn_down = (x: number, y: number, mask: number) => void;
+type on_mouse_mbtn_up = (x: number, y: number, mask: number) => void;
+type on_mouse_move = (x: number, y: number, mask: number) => void;
+type on_mouse_rbtn_dblclk = (x: number, y: number, mask: number) => void;
+type on_mouse_rbtn_down = (x: number, y: number, mask: number) => void;
+type on_mouse_rbtn_up = (x: number, y: number, mask: number) => void;
+type on_mouse_wheel = (step: number) => void;
+type on_mouse_wheel_h = (step: number) => void;
+type on_notify_data = (
+  name: string,
+  info: string | number | string[] | Object
+) => void;
+type on_output_device_changed = () => void;
+type on_paint = (gr: IJSGraphics) => void;
+type on_playback_follow_cursor_changed = (state: boolean) => void;
+type on_playback_dynamic_info = () => void;
+type on_playback_dynamic_info_track = (type: number) => void;
+type on_playback_edited = (handle: IMetadbHandle) => void;
+type on_playback_new_track = (handle: IMetadbHandle) => void;
+/**
+ * @newOrderIndex PlaybackOrder
+ */
+type on_playback_order_changed = (newOrderIndex: number) => void;
+type on_playback_pause = (state: boolean) => void;
+/**
+ * @origin PlaybackQueueOrigin
+ */
+type on_playback_queue_changed = (origin: number) => void;
+type on_playback_seek = (time: number) => void;
+/**
+ * @cmd PlayBackStartingCMD
+ */
+type on_playback_starting = (cmd: number, isPaused: boolean) => void;
+/**
+ * @reason PlaybackStopReason
+ */
+type on_playback_stop = (reason: number) => void;
+type on_playback_time = (time: number) => void;
+type on_playlist_items_added = (playlistIndex: number) => void;
+type on_playlist_items_removed = (
+  playlistIndex: number,
+  newCount: number
+) => void;
+type on_playlist_items_reordered = (playlistIndex: number) => void;
+type on_playlist_items_selection_change = () => void;
+type on_playlist_stop_after_current_changed = (state: boolean) => void;
+type on_playlist_switch = () => void;
+type on_playlists_changed = () => void;
+/**
+ * @newMode ReplaygainMode
+ */
+type on_replaygain_mode_changed = (newMode: number) => void;
+type on_run_cmd_async_done = (taskId: number) => void;
+type on_script_unload = () => void;
+type on_selection_changed = () => void;
+type on_size = () => void;
+type on_volume_change = (volume: nubmber) => void;
+
+/**
  * helper
  */
 declare const pos2vol: (pos: number) => number;
