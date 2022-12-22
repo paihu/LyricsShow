@@ -370,6 +370,7 @@ interface fb {
   AcquireSelectionHolder(): ISelectionHolder;
   AddLocationsAsync(windowId: number, paths: string[]): number;
   CheckClipboardContents(): boolean;
+  CheckComponent(name: string): boolean;
   ClearPlaylist();
   CreateContextMenuManager(): IContextMenuManager;
   CreateHandleList(handle?: IMetadbHandle): IMetadbHandleList;
@@ -432,7 +433,6 @@ interface utils {
     fontStyle?: DWrite_FONT_STYLE,
     fontStretch?: DWRITE_FONT_STRETCH
   ): number;
-  CheckComponent(name: string): boolean;
   CheckFont(name: string): boolean;
   ColourPicker(defaultColour: number): number;
   CreateFolder(path: string): boolean;
