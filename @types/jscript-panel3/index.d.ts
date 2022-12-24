@@ -20,7 +20,7 @@ interface IFileInfo {
   /**
    *
    * @param name
-   * @return index for InfoName, InfoValue
+   * @return index for InfoName, InfoValue. return -1 on failure.
    */
   InfoFind(name: string): number;
   InfoName(idx: number): string;
@@ -28,7 +28,7 @@ interface IFileInfo {
   /**
    *
    * @param name
-   * @return index for MetaName, MetaValue, MetaValueCount
+   * @return index for MetaName, MetaValue, MetaValueCount. return -1 on failure.
    */
   MetaFind(name: string): number;
   MetaName(idx: number): string;
@@ -159,14 +159,18 @@ interface IJSGraphics {
 }
 
 interface IJSImage {
-  Path: string;
-  Width: number;
-  Height: number;
+  readonly Path: string;
+  readonly Width: number;
+  readonly Height: number;
   ApplyEffect(effect: ImageEffect);
   Clone(): IJSImage;
   Dispose();
-  FlipRotate(options: WICBitmapTransform);
-  GetColourScheme(count: number): VBArray;
+  /**
+   *
+   * @param options see WICBitmapTransform
+   */
+  FlipRotate(options: number);
+  GetColourScheme(count: number): VBArray<string>;
   GetGraphics(): IJSGraphics;
   ReleaseGraphics();
   Resize(w: number, h: number);
@@ -239,7 +243,7 @@ interface IMetadbHandleList {
   Dispose();
   Find(handle: IMetadbHandle): number;
   GetItem(idx: number): IMetadbHandle;
-  GetLibraryRelativePaths(): VBArray;
+  GetLibraryRelativePaths(): VBArray<string>;
   GetOtherInfo(): string;
   GetQueryItems(query: string): IMetadbHandleList;
   InsertItem(idx: number, handle: IMetadbHandle);
@@ -300,7 +304,7 @@ interface ITitleFormat {
   EvalActivePlaylistItem(playlistItemIndex: number): string;
   EvalPlaylistItem(playlistIndex: number, playlistItemIndex: number): string;
   EvalWithMetadb(handle: IMetadbHandle): string;
-  EvalWithMetadbs(handleList: IMetadbHandleList): VBArray;
+  EvalWithMetadbs(handleList: IMetadbHandleList): VBArray<string>;
 }
 
 /** ITooltip
@@ -323,12 +327,8 @@ interface ITooltip {
   TrackPosition(x: number, y: number);
 }
 
-interface VBArray {
-  toArray(): string[];
-}
-
 interface Console {
-  GetLines(withTimestamp?: boolean): VBArray;
+  GetLines(withTimestamp?: boolean): VBArray<string>;
   ClearBacklog();
 }
 const console: console;
@@ -397,7 +397,7 @@ interface fb {
    * @param command The full path to the command must be supplied. Cause is not important.
    * @return boolean Returns true if a matching command was found, false otherwise.
    */
-  RunMainMenuCommand(command): boolean;
+  RunMainMenuCommand(command: string): boolean;
   /**
    * See GetDSPPresets
    * @param idx
@@ -474,7 +474,11 @@ interface utils {
    * @param excludeMask see type FILE_ATTRIBUTE
    * @param includeMask see type FILE_ATTRIBUTE
    */
-  Glob(pattern: string, excludeMask?: number, includeMask?: number): VBArray;
+  Glob(
+    pattern: string,
+    excludeMask?: number,
+    includeMask?: number
+  ): VBArray<string>;
   /**
    *
    * @param windowId
@@ -502,9 +506,9 @@ interface utils {
   IsFile(path: string): boolean;
   IsFolder(path: string): boolean;
   IsKeyPressed(vkey: number): boolean;
-  ListFiles(folder: string, recursive: boolean): VBArray;
-  ListFolders(folder: string, recursive: boolean): VBArray;
-  ListFonts(): VBArray;
+  ListFiles(folder: string, recursive: boolean): VBArray<string>;
+  ListFolders(folder: string, recursive: boolean): VBArray<string>;
+  ListFonts(): VBArrays<string>;
   LoadImage(path: string): IJSImage | null;
   LoadImageAsync(windowId: number, path: string);
   LoadSVG(pathOrXML: string, maxWidth: number): IJSImage | null;
@@ -513,12 +517,9 @@ interface utils {
    * @param prompt
    * @param title
    * @param flags combine MessageBoxButtons,MessageBoxIcons
+   * @return MessageBoxReturnValues (see IDOK...IDNO)
    */
-  MessageBox(
-    prompt: string,
-    title: string,
-    flags: number
-  ): MessageBoxReturnValues;
+  MessageBox(prompt: string, title: string, flags: number): numer;
   ReadINI(
     path: string,
     section: string,
@@ -637,7 +638,6 @@ interface Window {
   ShowProperties();
 }
 declare const window: Window & typeof globalThis;
-declare const RGB: (r: number, g: number, b: number) => number;
 
 /**
  * callback
@@ -828,7 +828,7 @@ type FontStyle = {
   Style: number;
   Weight: number;
 };
-declare const GetFontStyles: (text: string, fontOjb) => FontStyle[];
+declare const GetFontStyles: (text: string, fontOjb: FontStyle) => FontStyle[];
 declare const DrawRectangle: (
   gr: IJSGraphics,
   x: number,
@@ -1021,6 +1021,7 @@ declare const VK_INSERT: 0x2d;
 declare const VK_DELETE: 0x2e;
 declare const VK_SPACEBAR: 0x20;
 
+type AlbumArtId = typeof AlbumArtId[keyof typeof AlbumArtId];
 declare const AlbumArtId: {
   front: 0;
   back: 1;
@@ -1029,6 +1030,7 @@ declare const AlbumArtId: {
   artist: 4;
 };
 
+type numberTypeCUI = typeof numberTypeCUI[keyof typeof numberTypeCUI];
 declare const numberTypeCUI: {
   text: 0;
   selection_text: 1;
@@ -1039,6 +1041,7 @@ declare const numberTypeCUI: {
   active_item_frame: 6;
 };
 
+type numberTypeDUI = typeof numberTypeDUI[keyof typeof numberTypeDUI];
 declare const numberTypeDUI: {
   text: 0;
   background: 1;
@@ -1046,11 +1049,13 @@ declare const numberTypeDUI: {
   selection: 3;
 };
 
+type FontTypeCUI = typeof FontTypeCUI[keyof typeof FontTypeCUI];
 declare const FontTypeCUI: {
   items: 0;
   labels: 1;
 };
 
+type FontTypeDUI = typeof FontTypeDUI[keyof typeof FontTypeDUI];
 declare const FontTypeDUI: {
   defaults: 0;
   tabs: 1;
@@ -1060,6 +1065,8 @@ declare const FontTypeDUI: {
   console: 5;
 };
 
+type PlayListLockFilterMask =
+  typeof PlayListLockFilterMask[keyof typeof PlayListLockFilterMask];
 declare const PlaylistLockFilterMask: {
   filter_add: 1;
   filter_remove: 2;
@@ -1070,6 +1077,7 @@ declare const PlaylistLockFilterMask: {
   filter_default_action: 64;
 };
 
+type ReplayGainMode = typeof ReplaygainMode[keyof typeof ReplaygainMode];
 declare const ReplaygainMode: {
   None: 0;
   Track: 1;
@@ -1077,6 +1085,7 @@ declare const ReplaygainMode: {
   Track_Album_By_Playback_Order: 3;
 };
 
+type PlaybackOrder = typeof PlaybackOrder[keyof typeof PlaybackOrder];
 declare const PlaybackOrder: {
   Default: 0;
   Repeat_Playlist: 1;
@@ -1087,12 +1096,16 @@ declare const PlaybackOrder: {
   Shuffle_folders: 6;
 };
 
+type PlaybackQueueOrigin =
+  typeof PlaybackQueueOrigin[keyof typeof PlaybackQueueOrigin];
 declare const PlaybackQueueOrigin: {
   user_added: 0;
   user_removed: 1;
   playback_advance: 2;
 };
 
+type PlaybackStartingCMD =
+  typeof PlaybackStartingCMD[keyof typeof PlaybackStartingCMD];
 declare const PlaybackStartingCMD: {
   default: 0;
   play: 1;
@@ -1103,12 +1116,15 @@ declare const PlaybackStartingCMD: {
   resume: 6;
 };
 
+type PlaybackStopReason =
+  typeof PlaybackStopReason[keyof typeof PlaybackStopReason];
 declare const PlaybackStopReason: {
   user: 0;
   eof: 1;
   starting_another: 2;
 };
 
+type SelectionType = typeof SelectionType[keyof typeof SelectionType];
 declare const SelectionType: {
   undefined: 0;
   active_playlist_selection: 1;
@@ -1119,6 +1135,7 @@ declare const SelectionType: {
   media_library_viewer: 6;
 };
 
+type ImageEffect = typeof ImageEffect[keyof typeof ImageEffect];
 declare const ImageEffect: {
   grayscale: 0;
   invert: 1;
