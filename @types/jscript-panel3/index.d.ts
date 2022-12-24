@@ -176,7 +176,7 @@ interface IJSImage {
 interface IMainMenuManager {
   BuildMenu(parentMenu: IMenuObj, baseId: number);
   Dispose();
-  ExecuteById(id: number): boolean;
+  ExecuteByID(id: number): boolean;
 }
 interface IMenuObj {
   /**
@@ -374,7 +374,7 @@ interface fb {
   ClearPlaylist();
   CreateContextMenuManager(): IContextMenuManager;
   CreateHandleList(handle?: IMetadbHandle): IMetadbHandleList;
-  CreateMainMenuManager(rootName: string);
+  CreateMainMenuManager(rootName: string): IMainMenuManager;
   GetClipboardContents(): IMetadbHandleList;
   /** return JSON array in string form. so you need to user JSON.parse on the result */
   GetDSPPresets(): string;
