@@ -157,6 +157,48 @@ const calcHighlightIndex = (lyricTimes: number[], time: number) => {
   return index;
 };
 
+const buildMenu = (
+  items: {
+    caption: string;
+    func?: () => void;
+    sub?: { caption: string; func: () => void }[];
+  }[],
+  parent: {
+    idx: number;
+    menu?: IMenuObj;
+    func: { [key in number]?: () => void };
+  } = {
+    idx: 1,
+    func: {},
+  },
+  caption: string = ""
+) => {
+  const menu = window.CreatePopupMenu();
+  parent.menu
+    ? menu.AppendTo(parent.menu, MF_STRING, caption)
+    : (parent.menu = menu);
+  for (const item of items) {
+    if (item.sub) {
+      const child = buildMenu(
+        item.sub,
+        { ...parent, menu: menu },
+        item.caption
+      );
+      parent = { ...child, menu: parent.menu };
+      continue;
+    }
+    parent.func[parent.idx] = item.func;
+    menu.AppendMenuItem(MF_STRING, parent.idx++, item.caption);
+  }
+  return parent;
+};
+
+const fontWeight = (isBold: boolean) => {
+  return isBold ? 700 : 400;
+};
+const fontStyle = (isItalic: boolean) => {
+  return isItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
+};
 /**
  * global objects
  */
@@ -212,12 +254,8 @@ const fonts = {
       ? window.GetProperty("Panel.Font.Name", "Yu Gothic UI")
       : "Yu Gothic UI",
     size: window.GetProperty("Panel.Font.Size", 13),
-    weight: window.GetProperty("Panel.Font.Bold", false)
-      ? DWRITE_FONT_WEIGHT_BOLD
-      : DWRITE_FONT_WEIGHT_NORMAL,
-    style: window.GetProperty("Panel.Font.Italic", false)
-      ? DWRITE_FONT_STYLE_ITALIC
-      : DWRITE_FONT_STYLE_NORMAL,
+    weight: fontWeight(window.GetProperty("Panel.Font.Bold", false)),
+    style: fontStyle(window.GetProperty("Panel.Font.Italic", false)),
     stretch: DWRITE_FONT_STRETCH_NORMAL,
   },
 };
@@ -227,7 +265,7 @@ const colors = {
     "Panel.Lyrics.Highlight.Color",
     RGB(255, 142, 196)
   ),
-  shadow: window.GetProperty("Panel.Lyrics.Shadow.Color", RGBA(0, 0, 0, 255)),
+  shadow: window.GetProperty("Panel.Lyrics.Shadow.Color", RGB(0, 0, 0)),
   background: window.GetProperty(
     "Panel.Lyrics.Background.Color",
     RGB(76, 76, 76)
@@ -559,6 +597,109 @@ const on_size = () => {
 const on_mouse_wheel = (step: number) => {
   setScrollPosition(step);
   window.Repaint();
+};
+const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
+  const colorMenuItems = [
+    {
+      caption: "color",
+      func: () => {},
+      sub: [
+        {
+          caption: "main",
+          func: () => {
+            window.SetProperty(
+              "Panel.Lyrics.Main.Color",
+              utils.ColourPicker(colors.main)
+            );
+            colors.main = window.GetProperty(
+              "Panel.Lyrics.Main.Color",
+              colors.main
+            );
+            init();
+          },
+        },
+        {
+          caption: "shadow",
+          func: () => {
+            window.SetProperty(
+              "Panel.Lyrics.Shadow.Color",
+              utils.ColourPicker(colors.shadow)
+            );
+            colors.shadow = window.GetProperty(
+              "Panel.Lyrics.Shadow.Color",
+              colors.shadow
+            );
+            init();
+          },
+        },
+        {
+          caption: "highlight",
+          func: () => {
+            window.SetProperty(
+              "Panel.Lyrics.Highlight.Color",
+              utils.ColourPicker(colors.highlight)
+            );
+            colors.highlight = window.GetProperty(
+              "Panel.Lyrics.Highlight.Color",
+              colors.highlight
+            );
+            init();
+          },
+        },
+      ],
+    },
+  ];
+  const styleItems = [
+    {
+      caption: "style",
+      func: () => {},
+      sub: [
+        {
+          caption: "bold",
+          func: () => {
+            window.SetProperty(
+              "Panel.Font.Bold",
+              !window.GetProperty("Panel.Font.Bold", false)
+            );
+            fonts.text.weight = fontWeight(
+              window.GetProperty("Panel.Font.Bold", false)
+            );
+            init();
+          },
+        },
+        {
+          caption: "italic",
+          func: () => {
+            window.SetProperty(
+              "Panel.Font.Italic",
+              !window.GetProperty("Panel.Font.Italic", false)
+            );
+            fonts.text.style = fontStyle(
+              window.GetProperty("Panel.Font.Italic", false)
+            );
+            init();
+          },
+        },
+      ],
+    },
+  ];
+  const textMenuItem = [
+    {
+      sub: [...colorMenuItems, ...styleItems],
+      func: () => {},
+      caption: "text",
+    },
+  ];
+  const menu = buildMenu(textMenuItem);
+
+  const idx = menu.menu!.TrackPopupMenu(x, y);
+  console.log(idx);
+  const f = menu.func[idx];
+  console.log(f);
+  if (typeof f === "function") f();
+
+  menu.menu?.Dispose();
+  return true;
 };
 
 /**
