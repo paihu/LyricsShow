@@ -12,6 +12,16 @@ const ws = new ActiveXObject("WScript.Shell");
 type LyricsTags = "LYRICS" | "UNSYNCED LYRICS";
 type LyricsFileType = "txt" | "lrc";
 
+const getArtist = (handle: IFileInfo) => {
+  const artistIdx = handle.MetaFind("ARTIST");
+  if (artistIdx !== -1) {
+    return handle.MetaValue(artistIdx, 0);
+  }
+  const albumArtistIdx = handle.MetaFind("ALBUM ARTIST");
+  if (albumArtistIdx !== -1) {
+    return handle.MetaValue(albumArtistIdx, 0);
+  }
+};
 const getLyrics = (handle: IMetadbHandle) => {
   const lyrics: {
     raw: string[];
@@ -41,9 +51,10 @@ const getLyrics = (handle: IMetadbHandle) => {
         case "lrc":
         case "txt":
           const titleIdx = fileInfo.MetaFind("TITLE");
+          if (titleIdx === -1) break;
           const title = fileInfo.MetaValue(titleIdx, 0);
-          const artistIdx = fileInfo.MetaFind("ARTIST");
-          const artist = fileInfo.MetaValue(artistIdx, 0);
+          const artist = getArtist(fileInfo);
+          if (!artist) break;
           const path = `${obj.lyricsSearchPath}${artist.replace(
             "*",
             "＊"
@@ -77,7 +88,7 @@ const getLyrics = (handle: IMetadbHandle) => {
 };
 
 const calcImageSize = (
-  image: IJSImage | null,
+  image: IJSImage | undefined,
   dispW: number,
   dispH: number,
   stretch: boolean,
@@ -206,7 +217,7 @@ const fontStyle = (isItalic: boolean) => {
 const obj: {
   height: number;
   width: number;
-  albumArt?: IJSImage | null;
+  albumArt?: IJSImage;
   lyrics: {
     raw: string[];
     view: string[];
@@ -217,11 +228,13 @@ const obj: {
   lyricsUnsyncedHighlight: boolean;
   lyricsIsSync: boolean;
   lyricsLayout: ITextLayout[];
-  lyricsImage?: IJSImage | null;
-  lyricsShadowImage?: IJSImage | null;
-  lyricsHighlightImage?: IJSImage | null;
+  lyricsImage?: IJSImage;
+  lyricsShadowImage?: IJSImage;
+  lyricsHighlightImage?: IJSImage;
   lyricsOrder: (LyricsFileType | LyricsTags)[];
   lyricsSearchPath: string;
+  noLyricsLayout?: ITextLayout;
+  noLyricsImage?: IJSImage;
   padding: number;
   timer: number;
   interval: number;
@@ -340,7 +353,7 @@ const setScrollPosition = (step: number) => {
 const loadTrackObj = (handle: IMetadbHandle) => {
   obj.step = 0;
   obj.albumArt?.Dispose();
-  obj.albumArt = handle.GetAlbumArtEmbedded();
+  obj.albumArt = handle.GetAlbumArtEmbedded() ?? undefined;
   obj.lyrics = getLyrics(handle);
   obj.lyricsIsSync = obj.lyrics.time.some((time) => {
     return time >= 0;
@@ -352,20 +365,20 @@ const loadTrackObj = (handle: IMetadbHandle) => {
 };
 const releaseTrackObj = () => {
   obj.albumArt?.Dispose();
-  obj.albumArt = null;
+  obj.albumArt = undefined;
 
   releaseLyricsLayouts(obj.lyricsLayout);
   obj.lyricsLayout = [];
 
   obj.lyricsImage?.Dispose();
-  obj.lyricsImage = null;
+  obj.lyricsImage = undefined;
 
   obj.lyrics = { raw: [], view: [], time: [], y: [] };
 };
 
 const generateLyricsShadowImage = () => {
   obj.lyricsShadowImage?.Dispose();
-  obj.lyricsShadowImage = null;
+  obj.lyricsShadowImage = undefined;
   const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsShadowImage = utils.CreateImage(obj.width, hight);
@@ -390,7 +403,7 @@ const calcLyricsImageHeight = () => {
 };
 const generateLyricsImage = () => {
   obj.lyricsImage?.Dispose();
-  obj.lyricsImage = null;
+  obj.lyricsImage = undefined;
   const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
     obj.lyricsImage = utils.CreateImage(obj.width, hight);
@@ -417,7 +430,7 @@ const generateLyricsImage = () => {
 };
 const generateLyricsHighlightImage = () => {
   obj.lyricsHighlightImage?.Dispose();
-  obj.lyricsHighlightImage = null;
+  obj.lyricsHighlightImage = undefined;
   const current = fb.PlaybackTime;
   const highlightIndex = calcHighlightIndex(obj.lyrics.time, current);
   if (highlightIndex === -1) return;
