@@ -568,7 +568,7 @@ const renderLyrics = (gr: IJSGraphics) => {
       0,
       y > 0 ? y : 0,
       obj.width,
-      obj.height
+      obj.height - obj.padding * 2
     );
 
   gr.DrawImage(
@@ -580,7 +580,7 @@ const renderLyrics = (gr: IJSGraphics) => {
     0,
     y > 0 ? y : 0,
     obj.width,
-    obj.height
+    obj.height - obj.padding * 2
   );
   if (obj.lyricsHighlightImage)
     gr.DrawImage(
@@ -592,7 +592,7 @@ const renderLyrics = (gr: IJSGraphics) => {
       0,
       y > 0 ? y : 0,
       obj.width,
-      obj.height
+      obj.height - obj.padding * 2
     );
 };
 
