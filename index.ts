@@ -12,6 +12,18 @@ const ws = new ActiveXObject("WScript.Shell");
 type LyricsTags = "LYRICS" | "UNSYNCED LYRICS";
 type LyricsFileType = "txt" | "lrc";
 
+const getDefaultFont = (): {
+  Name: string;
+  Size: number;
+  Style: number;
+  Weight: number;
+} => {
+  try {
+    return JSON.parse(window.GetFontCUI(0));
+  } catch {
+    return JSON.parse(window.GetFontDUI(0));
+  }
+};
 const getArtist = (handle: IFileInfo) => {
   const artistIdx = handle.MetaFind("ARTIST");
   if (artistIdx !== -1) {
@@ -263,7 +275,9 @@ const obj: {
 };
 const fonts = {
   text: {
-    name: utils.CheckFont(window.GetProperty("Panel.Font.Name", "Yu Gothic UI"))
+    name: utils.CheckFont(
+      window.GetProperty("Panel.Font.Name", getDefaultFont().Name)
+    )
       ? window.GetProperty("Panel.Font.Name", "Yu Gothic UI")
       : "Yu Gothic UI",
     size: window.GetProperty("Panel.Font.Size", 13),
