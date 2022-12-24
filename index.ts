@@ -554,9 +554,12 @@ const renderLyrics = (gr: IJSGraphics) => {
   if (!obj.lyricsImage) return;
   const currentPosition = calcCurrentPosition();
   if (!currentPosition) return;
-  const y = Math.min(
-    currentPosition + obj.step * obj.stepHight,
-    obj.lyricsImage.Height - obj.height
+  const y = Math.max(
+    Math.min(
+      currentPosition + obj.step * obj.stepHight,
+      obj.lyricsImage.Height - obj.height
+    ),
+    0
   );
   if (LyricsView.shadow.enabled && obj.lyricsShadowImage)
     gr.DrawImage(
@@ -566,7 +569,7 @@ const renderLyrics = (gr: IJSGraphics) => {
       obj.width,
       obj.height - obj.padding * 2,
       0,
-      y > 0 ? y : 0,
+      y,
       obj.width,
       obj.height - obj.padding * 2
     );
@@ -578,7 +581,7 @@ const renderLyrics = (gr: IJSGraphics) => {
     obj.width,
     obj.height - obj.padding * 2,
     0,
-    y > 0 ? y : 0,
+    y,
     obj.width,
     obj.height - obj.padding * 2
   );
@@ -590,10 +593,29 @@ const renderLyrics = (gr: IJSGraphics) => {
       obj.width,
       obj.height - obj.padding * 2,
       0,
-      y > 0 ? y : 0,
+      y,
       obj.width,
       obj.height - obj.padding * 2
     );
+};
+const getLyricsLine = (y: number) => {
+  if (!obj.lyricsIsSync || !obj.lyricsImage) return;
+  const currentPosition = calcCurrentPosition();
+  if (!currentPosition) return;
+  const lyricsImageY =
+    Math.min(
+      currentPosition + obj.step * obj.stepHight,
+      obj.lyricsImage.Height - obj.height
+    ) +
+    obj.padding +
+    y -
+    obj.height / 2;
+  const line = obj.lyrics.y.reduce(
+    (acc, cur, index) => (cur < lyricsImageY ? index - 1 : acc),
+    -1
+  );
+  if (!obj.lyrics.view[line]) return;
+  return line;
 };
 
 /**
@@ -635,6 +657,17 @@ const on_size = () => {
 const on_mouse_wheel = (step: number) => {
   setScrollPosition(step);
   window.Repaint();
+};
+const on_mouse_lbtn_dblclk: on_mouse_lbtn_dblclk = (_x, y) => {
+  const beforePos = calcCurrentPosition();
+  if (!beforePos) return;
+  const line = getLyricsLine(y);
+  if (typeof line === "number") {
+    fb.PlaybackTime = obj.lyrics.time[line];
+    const afterPos = calcCurrentPosition();
+    if (!afterPos) return;
+    obj.step -= (afterPos - beforePos) / obj.stepHight;
+  }
 };
 const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
   const colorMenuItems = [
