@@ -354,8 +354,7 @@ const calcCurrentPosition = () => {
       ? obj.lyrics.time[nextLine]
       : total;
 
-  const delta =
-    targetPos - (obj.lyrics.y[currentLine] || -LyricsView.fonts.text.size);
+  const delta = targetPos - basePos;
 
   return basePos + (delta * (current - baseTime)) / (targetTime - baseTime);
 };
