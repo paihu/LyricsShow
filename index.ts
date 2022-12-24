@@ -318,20 +318,32 @@ const calcCurrentPosition = () => {
 
   const currentLine = obj.lyrics.time.reduce(
     (acc, cur, index) => (cur === -1 ? acc : current > cur ? index : acc),
-    0
-  );
-  const nextLine = obj.lyrics.time.reduce(
-    (acc, cur, index) => (acc === -1 ? (current < cur ? index : acc) : acc),
     -1
   );
+  const nextLine = obj.lyrics.time.reduce((acc, cur, index) => {
+    if (index < currentLine) return acc;
+    if (acc === -1 && current < cur) return index;
+    return acc;
+  }, -1);
+
+  const basePos = obj.lyrics.y[currentLine] || -LyricsView.fonts.text.size;
+  const targetPos = (() => {
+    if (typeof obj.lyrics.y[nextLine] !== "number")
+      return obj.lyricsImage!.Height - obj.height;
+    if (currentLine === -1 && nextLine === 0) return 0;
+    return obj.lyrics.y[nextLine];
+  })();
+
+  const baseTime = obj.lyrics.time[currentLine] || 0;
+  const targetTime =
+    typeof obj.lyrics.time[nextLine] === "number"
+      ? obj.lyrics.time[nextLine]
+      : total;
+
   const delta =
-    (obj.lyrics.y[nextLine] || obj.lyricsImage.Height - obj.height) -
-    obj.lyrics.y[currentLine];
-  return (
-    obj.lyrics.y[currentLine] +
-    (delta * (current - obj.lyrics.time[currentLine])) /
-      ((obj.lyrics.time[nextLine] || total) - obj.lyrics.time[currentLine])
-  );
+    targetPos - (obj.lyrics.y[currentLine] || -LyricsView.fonts.text.size);
+
+  return basePos + (delta * (current - baseTime)) / (targetTime - baseTime);
 };
 const setScrollPosition = (step: number) => {
   const currentPosition = calcCurrentPosition();
@@ -706,9 +718,7 @@ const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
   const menu = buildMenu(textMenuItem);
 
   const idx = menu.menu!.TrackPopupMenu(x, y);
-  console.log(idx);
   const f = menu.func[idx];
-  console.log(f);
   if (typeof f === "function") f();
 
   menu.menu?.Dispose();
