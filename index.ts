@@ -33,6 +33,14 @@ const getArtist = (handle: IFileInfo) => {
   if (albumArtistIdx !== -1) {
     return handle.MetaValue(albumArtistIdx, 0);
   }
+  return "";
+};
+const getTitle = (handle: IFileInfo) => {
+  const idx = handle.MetaFind("TITLE");
+  if (idx !== -1) {
+    return handle.MetaValue(idx, 0);
+  }
+  return "";
 };
 const getLyrics = (handle: IMetadbHandle) => {
   const lyrics: {
@@ -62,9 +70,7 @@ const getLyrics = (handle: IMetadbHandle) => {
           break;
         case "lrc":
         case "txt":
-          const titleIdx = fileInfo.MetaFind("TITLE");
-          if (titleIdx === -1) break;
-          const title = fileInfo.MetaValue(titleIdx, 0);
+          const title = getTitle(fileInfo);
           const artist = getArtist(fileInfo);
           if (!artist) break;
           const path = `${obj.lyricsSearchPath}${artist.replace(
@@ -157,20 +163,20 @@ const padding03 = (str: string) => {
   return ("00" + str).slice(-3);
 };
 const timeToTimeTag = (time: number) => {
-  const msec = Math.floor((time % 1) * 1000).toString();
+  const msec = Math.floor((time % 1) * 100).toString();
   const sec = Math.floor(time % 60).toString();
   const min = Math.floor((time % 3600) / 60).toString();
   const hour = Math.floor(time / 3600).toString();
   if (hour !== "0") {
-    return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding03(
+    return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding02(
       msec
     )}`;
   } else {
-    return `${padding02(min)}:${padding02(sec)}.${padding03(msec)}`;
+    return `${padding02(min)}:${padding02(sec)}.${padding02(msec)}`;
   }
 };
 
-const calcHighlightIndex = (lyricTimes: number[], time: number) => {
+const calcCurrentLyricsLine = (lyricTimes: number[], time: number) => {
   let index = -1;
   lyricTimes.forEach((current, idx) => {
     if (current >= 0 && current < time) {
@@ -180,26 +186,35 @@ const calcHighlightIndex = (lyricTimes: number[], time: number) => {
   return index;
 };
 
+type Menu = {
+  idx: number;
+  menu: IMenuObj;
+  func: { [key in number]?: () => void };
+};
+type MenuProps = {
+  idx: number;
+  menu?: IMenuObj;
+  func: { [key in number]?: () => void };
+};
+
 const buildMenu = (
   items: {
     caption: string;
     func?: () => void;
     sub?: { caption: string; func: () => void }[];
   }[],
-  parent: {
-    idx: number;
-    menu?: IMenuObj;
-    func: { [key in number]?: () => void };
-  } = {
+  parent: MenuProps = {
     idx: 1,
     func: {},
   },
   caption: string = ""
-) => {
+): Menu => {
   const menu = window.CreatePopupMenu();
-  parent.menu
-    ? menu.AppendTo(parent.menu, MF_STRING, caption)
-    : (parent.menu = menu);
+  if (parent.menu) {
+    menu.AppendTo(parent.menu, MF_STRING, caption);
+  } else {
+    parent.menu = menu;
+  }
   for (const item of items) {
     if (item.sub) {
       const child = buildMenu(
@@ -213,7 +228,7 @@ const buildMenu = (
     parent.func[parent.idx] = item.func;
     menu.AppendMenuItem(MF_STRING, parent.idx++, item.caption);
   }
-  return parent;
+  return { ...parent, menu: parent.menu! };
 };
 
 const fontWeight = (isBold: boolean) => {
@@ -227,6 +242,7 @@ const fontStyle = (isItalic: boolean) => {
  */
 
 const obj: {
+  mode: "View" | "Edit" | "EditView";
   height: number;
   width: number;
   albumArt?: IJSImage;
@@ -245,6 +261,8 @@ const obj: {
   lyricsHighlightImage?: IJSImage;
   lyricsOrder: (LyricsFileType | LyricsTags)[];
   lyricsSearchPath: string;
+  lyricsEditStepTime: number;
+  lyricsEditSeekStepTime: number;
   noLyricsLayout?: ITextLayout;
   noLyricsImage?: IJSImage;
   padding: number;
@@ -253,6 +271,7 @@ const obj: {
   stepHight: number;
   step: number;
 } = {
+  mode: "View",
   height: 0,
   width: 0,
   lyrics: { raw: [], view: [], time: [], y: [] },
@@ -262,11 +281,13 @@ const obj: {
     false
   ),
   lyricsLayout: [],
-  lyricsOrder: ["LYRICS", "UNSYNCED LYRICS", "lrc", "txt"],
+  lyricsOrder: ["LYRICS", "lrc", "UNSYNCED LYRICS", "txt"],
   lyricsSearchPath: window.GetProperty<string>(
     "Panel.SearchPath",
     ws.SpecialFolders.Item("Desktop")
   ),
+  lyricsEditStepTime: window.GetProperty("Panel.Edit.stepTime", 14),
+  lyricsEditSeekStepTime: window.GetProperty("Panel.Edit.SeekTime", 5000),
   padding: window.GetProperty("Panel.Padding", 5),
   timer: -1,
   interval: window.GetProperty("Panel.Interval", 30),
@@ -286,6 +307,15 @@ const fonts = {
     stretch: DWRITE_FONT_STRETCH_NORMAL,
   },
 };
+const textFontString = () => {
+  JSON.stringify({
+    Name: fonts.text.name,
+    Size: fonts.text.size,
+    Style: fonts.text.style,
+    Weight: fonts.text.weight,
+    Stretch: fonts.text.stretch,
+  });
+};
 const colors = {
   main: window.GetProperty("Panel.Lyrics.Main.Color", RGB(190, 190, 190)),
   highlight: window.GetProperty(
@@ -296,6 +326,24 @@ const colors = {
   background: window.GetProperty(
     "Panel.Lyrics.Background.Color",
     RGB(76, 76, 76)
+  ),
+  editMain: window.GetProperty("Panel.Edit.Main.Color", RGB(80, 80, 80)),
+
+  editBackground: window.GetProperty(
+    "Panel.Edit.Background.Color",
+    RGB(255, 255, 255)
+  ),
+  editHighlight: window.GetProperty(
+    "Panel.Edit.HighlightBackground.Color",
+    RGB(193, 219, 252)
+  ),
+  editViewBackground: window.GetProperty(
+    "Panel.EditView.Background.Color",
+    RGB(236, 244, 254)
+  ),
+  editViewHighlight: window.GetProperty(
+    "Panel.EditView.HighlightBackground.Color",
+    RGB(193, 219, 252)
   ),
 };
 const LyricsView = {
@@ -419,12 +467,8 @@ const generateLyricsShadowImage = () => {
   }
 };
 const calcLyricsImageHeight = () => {
-  if (obj.lyrics.raw.length === 0) return 0;
-  return (
-    obj.lyrics.y[obj.lyrics.raw.length - 1] +
-    obj.lyricsLayout[obj.lyrics.raw.length - 1].CalcTextHeight(obj.width) +
-    obj.height
-  );
+  if (obj.lyrics.y.length === 0) return 0;
+  return obj.lyrics.y[obj.lyrics.y.length - 1] + obj.height;
 };
 const generateLyricsImage = () => {
   obj.lyricsImage?.Dispose();
@@ -457,8 +501,9 @@ const generateLyricsHighlightImage = () => {
   obj.lyricsHighlightImage?.Dispose();
   obj.lyricsHighlightImage = undefined;
   const current = fb.PlaybackTime;
-  const highlightIndex = calcHighlightIndex(obj.lyrics.time, current);
-  if (highlightIndex === -1) return;
+  const highlightIndex = calcCurrentLyricsLine(obj.lyrics.time, current);
+  if (highlightIndex === -1 || highlightIndex >= obj.lyricsLayout.length)
+    return;
 
   const hight = calcLyricsImageHeight();
   if (hight > 0 && obj.width > 0) {
@@ -504,8 +549,12 @@ const calcLyricsLineY = () => {
     );
   }
 };
-const releaseLyricsLayouts = (arr: ITextLayout[]) => {
-  arr.forEach((layout) => layout.Dispose());
+const releaseLyricsLayouts = (layouts: ITextLayout[] | ITextLayout) => {
+  if (Array.isArray(layouts)) {
+    layouts.forEach((layout) => layout.Dispose());
+  } else {
+    layouts.Dispose();
+  }
 };
 const resetTimer = () => {
   window.ClearInterval(obj.timer);
@@ -619,23 +668,386 @@ const getLyricsLine = (y: number) => {
 };
 
 /**
+ * Editor
+ */
+
+const renderEditBackground = (
+  gr: IJSGraphics,
+  colour = colors.editBackground
+) => {
+  gr.FillRectangle(0, 0, obj.width, obj.height, colour);
+  const h = obj.lyricsLayout[0].CalcTextHeight(100000000000000);
+  for (var i = 0; i < obj.height; i += h) {
+    gr.DrawLine(
+      0 + obj.padding,
+      i,
+      obj.width - obj.padding,
+      i,
+      1,
+      RGB(192, 192, 192)
+    );
+  }
+};
+const renderEditLyrics = (gr: IJSGraphics) => {
+  const currentLine = obj.lyrics.time.reduce(
+    (acc, cur, index) => (cur > 0 ? index : acc),
+    0
+  );
+  var pos = 0;
+  for (var i = currentLine - 2; i < obj.lyrics.view.length; i++) {
+    const time = obj.lyrics.time[i] || 0;
+    const layout = utils.CreateTextLayout(
+      `${i !== -2 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
+        obj.lyrics.view[i] || ""
+      }`,
+      fonts.text.name,
+      fonts.text.size,
+      fonts.text.weight,
+      fonts.text.style,
+      fonts.text.stretch,
+      DWRITE_TEXT_ALIGNMENT_CENTER,
+      DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+      DWRITE_WORD_WRAPPING_WRAP
+    );
+    if (i === currentLine) {
+      gr.FillRectangle(
+        0,
+        pos,
+        obj.width,
+        layout.CalcTextHeight(obj.width),
+        setAlpha(colors.editHighlight, 210)
+      );
+    }
+    gr.WriteTextLayout(
+      layout,
+      colors.editMain,
+      0,
+      pos,
+      obj.width,
+      layout.CalcTextHeight(obj.width)
+    );
+    pos += layout.CalcTextHeight(obj.width);
+    releaseLyricsLayouts(layout);
+    if (pos > obj.height) break;
+  }
+};
+const renderEditViewLyrics = (gr: IJSGraphics) => {
+  const current = fb.PlaybackTime;
+  const currentLine =
+    calcCurrentLyricsLine(obj.lyrics.time, current) !== -1
+      ? calcCurrentLyricsLine(obj.lyrics.time, current)
+      : 0;
+  var pos = 0;
+  for (var i = currentLine - 2; i < obj.lyrics.view.length; i++) {
+    const time = obj.lyrics.time[i] || 0;
+    const layout = utils.CreateTextLayout(
+      `${i !== -2 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
+        obj.lyrics.view[i] || ""
+      }`,
+      fonts.text.name,
+      fonts.text.size,
+      fonts.text.weight,
+      fonts.text.style,
+      fonts.text.stretch,
+      DWRITE_TEXT_ALIGNMENT_CENTER,
+      DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+      DWRITE_WORD_WRAPPING_WRAP
+    );
+    if (i === currentLine) {
+      gr.FillRectangle(
+        0,
+        pos,
+        obj.width,
+        layout.CalcTextHeight(obj.width),
+        setAlpha(colors.editViewHighlight, 210)
+      );
+    }
+    gr.WriteTextLayout(
+      layout,
+      colors.editMain,
+      0,
+      pos,
+      obj.width,
+      layout.CalcTextHeight(obj.width)
+    );
+    pos += layout.CalcTextHeight(obj.width);
+    releaseLyricsLayouts(layout);
+    if (pos > obj.height) break;
+  }
+};
+/**
+ * menu
+ */
+
+const colorMenuItems = [
+  {
+    caption: "color",
+    func: () => {},
+    sub: [
+      {
+        caption: "main",
+        func: () => {
+          window.SetProperty(
+            "Panel.Lyrics.Main.Color",
+            utils.ColourPicker(colors.main)
+          );
+          colors.main = window.GetProperty(
+            "Panel.Lyrics.Main.Color",
+            colors.main
+          );
+          init();
+        },
+      },
+      {
+        caption: "shadow",
+        func: () => {
+          window.SetProperty(
+            "Panel.Lyrics.Shadow.Color",
+            utils.ColourPicker(colors.shadow)
+          );
+          colors.shadow = window.GetProperty(
+            "Panel.Lyrics.Shadow.Color",
+            colors.shadow
+          );
+          init();
+        },
+      },
+      {
+        caption: "highlight",
+        func: () => {
+          window.SetProperty(
+            "Panel.Lyrics.Highlight.Color",
+            utils.ColourPicker(colors.highlight)
+          );
+          colors.highlight = window.GetProperty(
+            "Panel.Lyrics.Highlight.Color",
+            colors.highlight
+          );
+          init();
+        },
+      },
+    ],
+  },
+];
+const styleItems = [
+  {
+    caption: "style",
+    func: () => {},
+    sub: [
+      {
+        caption: "bold",
+        func: () => {
+          window.SetProperty(
+            "Panel.Font.Bold",
+            !window.GetProperty("Panel.Font.Bold", false)
+          );
+          fonts.text.weight = fontWeight(
+            window.GetProperty("Panel.Font.Bold", false)
+          );
+          init();
+        },
+      },
+      {
+        caption: "italic",
+        func: () => {
+          window.SetProperty(
+            "Panel.Font.Italic",
+            !window.GetProperty("Panel.Font.Italic", false)
+          );
+          fonts.text.style = fontStyle(
+            window.GetProperty("Panel.Font.Italic", false)
+          );
+          init();
+        },
+      },
+    ],
+  },
+];
+const mainMenuItem = [
+  {
+    caption: "EditMode",
+    func: () => {
+      obj.mode = obj.lyricsIsSync ? "EditView" : "Edit";
+      window.Repaint();
+    },
+  },
+  {
+    sub: [...colorMenuItems, ...styleItems],
+    func: () => {},
+    caption: "text",
+  },
+];
+
+const editColorMenuItems = [
+  {
+    caption: "text",
+    func: () => {
+      window.SetProperty(
+        "Panel.Lyrics.Main.Color",
+        utils.ColourPicker(colors.editMain)
+      );
+      colors.editMain = window.GetProperty(
+        "Panel.Edit.Main.Color",
+        colors.editMain
+      );
+    },
+  },
+  {
+    caption: "background",
+    func: () => {
+      window.SetProperty(
+        "Panel.Edit.Background.Color",
+        utils.ColourPicker(colors.editBackground)
+      );
+      colors.editBackground = window.GetProperty(
+        "Panel.Edit.HighlightBackground.Color",
+        colors.editBackground
+      );
+      init();
+    },
+  },
+  {
+    caption: "highlightBackground",
+    func: () => {
+      window.SetProperty(
+        "Panel.EditView.Background.Color",
+        utils.ColourPicker(colors.editHighlight)
+      );
+      colors.editHighlight = window.GetProperty(
+        "Panel.EditView.HighlightBackground.Color",
+        colors.editHighlight
+      );
+      init();
+    },
+  },
+  {
+    caption: "editBackground",
+    func: () => {
+      window.SetProperty(
+        "Panel.Lyrics.Highlight.Color",
+        utils.ColourPicker(colors.editViewBackground)
+      );
+      colors.editViewBackground = window.GetProperty(
+        "Panel.Lyrics.Highlight.Color",
+        colors.editViewBackground
+      );
+      init();
+    },
+  },
+  {
+    caption: "editHighlightBackground",
+    func: () => {
+      window.SetProperty(
+        "Panel.Lyrics.Highlight.Color",
+        utils.ColourPicker(colors.editViewHighlight)
+      );
+      colors.editViewHighlight = window.GetProperty(
+        "Panel.Lyrics.Highlight.Color",
+        colors.editViewHighlight
+      );
+      init();
+    },
+  },
+];
+const editMenuItem = [
+  {
+    caption: "EditMode",
+    func: () => {
+      obj.mode = "Edit";
+      window.Repaint();
+    },
+  },
+  {
+    caption: "EditViewMode",
+    func: () => {
+      obj.mode = "EditView";
+      window.Repaint();
+    },
+  },
+  {
+    caption: "ViewMode",
+    func: () => {
+      obj.mode = "View";
+      window.Repaint();
+    },
+  },
+  {
+    caption: "SaveToFile",
+    func: () => {
+      const lyricsStr = obj.lyrics.view.reduce((acc, cur, index) => {
+        const time = obj.lyrics.time[index];
+        return `${acc !== "" ? `${acc}\n` : ""}${
+          time >= 0 ? `[${timeToTimeTag(time)}]` : ""
+        }${cur.trim()}`;
+      }, "");
+      console.log(lyricsStr);
+      const handle = fb.GetNowPlaying();
+      const fileInfo = handle?.GetFileInfo();
+      if (!fileInfo) {
+        handle?.Dispose();
+        return;
+      }
+      const artist = getArtist(fileInfo);
+      const title = getTitle(fileInfo);
+      if (!artist || !title) {
+        fileInfo.Dispose();
+        handle?.Dispose();
+        return;
+      }
+      const path = `${obj.lyricsSearchPath}${artist.replace(
+        "*",
+        "＊"
+      )}\\${title.replace("*", "＊")}.lrc`;
+      utils.WriteTextFile(path, lyricsStr);
+      fileInfo.Dispose();
+      handle?.Dispose();
+    },
+  },
+  {
+    sub: editColorMenuItems,
+    func: () => {},
+    caption: "text",
+  },
+  ...styleItems,
+];
+const menu: { View: Menu; Edit: Menu; EditView: Menu } = {
+  View: buildMenu(mainMenuItem),
+  Edit: buildMenu(editMenuItem),
+  EditView: buildMenu(editMenuItem),
+};
+
+/**
  * callbacks
  */
 
 const on_paint = (gr: IJSGraphics) => {
-  gr.FillRectangle(0, 0, obj.width, obj.height, colors.background);
-  renderAlbumArt(gr);
-  renderLyrics(gr);
+  switch (obj.mode) {
+    case "View":
+      gr.FillRectangle(0, 0, obj.width, obj.height, colors.background);
+      renderAlbumArt(gr);
+      renderLyrics(gr);
+      break;
+    case "Edit":
+      renderEditBackground(gr);
+      renderEditLyrics(gr);
+      break;
+    case "EditView":
+      renderEditBackground(gr, colors.editViewBackground);
+      renderEditViewLyrics(gr);
+      break;
+  }
 };
 const on_playback_new_track = (handle: IMetadbHandle) => {
   loadTrackObj(handle);
   resetTimer();
+  obj.mode = "View";
   window.Repaint();
 };
 const on_playback_stop = (reason: number) => {
   if (reason !== PlaybackStopReason.starting_another) {
     stopTimer();
     releaseTrackObj();
+    obj.mode = "View";
     window.Repaint();
   }
 };
@@ -649,126 +1061,141 @@ const on_playback_pause = (isPause: boolean) => {
 const on_size = () => {
   obj.height = window.Height;
   obj.width = window.Width;
-  calcLyricsLineY();
-  generateLyricsImage();
-  generateLyricsShadowImage();
-  generateLyricsHighlightImage();
+  switch (obj.mode) {
+    case "View":
+      calcLyricsLineY();
+      generateLyricsImage();
+      generateLyricsShadowImage();
+      generateLyricsHighlightImage();
+      break;
+    case "Edit":
+      break;
+  }
 };
 const on_mouse_wheel = (step: number) => {
-  setScrollPosition(step);
+  const current = fb.PlaybackTime;
+  const index = calcCurrentLyricsLine(obj.lyrics.time, current);
+  switch (obj.mode) {
+    case "View":
+      setScrollPosition(step);
+      break;
+    case "Edit":
+      if (step > 0) {
+        if (index >= 0) obj.lyrics.time[index] = -1;
+      } else {
+        if (index > obj.lyrics.view.length) return;
+        if (!fb.IsPaused) obj.lyrics.time[index + 1] = current;
+      }
+      break;
+    case "EditView":
+      if (step > 0) {
+        for (var i = index - 1; i >= 0; i--)
+          if (obj.lyrics.time[i] && obj.lyrics.time[i] >= 0) {
+            fb.PlaybackTime = obj.lyrics.time[i];
+            break;
+          }
+      } else {
+        for (var i = index + 1; i < obj.lyrics.time.length; i++)
+          if (obj.lyrics.time[i] && obj.lyrics.time[i] >= 0) {
+            fb.PlaybackTime = obj.lyrics.time[i] + 1;
+            break;
+          }
+      }
+      break;
+  }
   window.Repaint();
 };
+const on_mouse_lbtn_down: on_mouse_lbtn_down = (_x, _y) => {
+  switch (obj.mode) {
+    case "View":
+      break;
+    case "Edit":
+      const current = fb.PlaybackTime;
+      const index = calcCurrentLyricsLine(obj.lyrics.time, current);
+      obj.lyrics.time[index + 1] = current;
+
+      break;
+  }
+};
 const on_mouse_lbtn_dblclk: on_mouse_lbtn_dblclk = (_x, y) => {
-  const beforePos = calcCurrentPosition();
-  if (!beforePos) return;
-  const line = getLyricsLine(y);
-  if (typeof line === "number") {
-    fb.PlaybackTime = obj.lyrics.time[line];
-    const afterPos = calcCurrentPosition();
-    if (!afterPos) return;
-    obj.step -= (afterPos - beforePos) / obj.stepHight;
+  switch (obj.mode) {
+    case "View":
+      const beforePos = calcCurrentPosition();
+      if (!beforePos) return;
+      const line = getLyricsLine(y);
+      if (typeof line === "number") {
+        fb.PlaybackTime = obj.lyrics.time[line];
+        const afterPos = calcCurrentPosition();
+        if (!afterPos) return;
+        obj.step -= (afterPos - beforePos) / obj.stepHight;
+      }
+    case "Edit":
+      break;
   }
 };
 const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
-  const colorMenuItems = [
-    {
-      caption: "color",
-      func: () => {},
-      sub: [
-        {
-          caption: "main",
-          func: () => {
-            window.SetProperty(
-              "Panel.Lyrics.Main.Color",
-              utils.ColourPicker(colors.main)
-            );
-            colors.main = window.GetProperty(
-              "Panel.Lyrics.Main.Color",
-              colors.main
-            );
-            init();
-          },
-        },
-        {
-          caption: "shadow",
-          func: () => {
-            window.SetProperty(
-              "Panel.Lyrics.Shadow.Color",
-              utils.ColourPicker(colors.shadow)
-            );
-            colors.shadow = window.GetProperty(
-              "Panel.Lyrics.Shadow.Color",
-              colors.shadow
-            );
-            init();
-          },
-        },
-        {
-          caption: "highlight",
-          func: () => {
-            window.SetProperty(
-              "Panel.Lyrics.Highlight.Color",
-              utils.ColourPicker(colors.highlight)
-            );
-            colors.highlight = window.GetProperty(
-              "Panel.Lyrics.Highlight.Color",
-              colors.highlight
-            );
-            init();
-          },
-        },
-      ],
-    },
-  ];
-  const styleItems = [
-    {
-      caption: "style",
-      func: () => {},
-      sub: [
-        {
-          caption: "bold",
-          func: () => {
-            window.SetProperty(
-              "Panel.Font.Bold",
-              !window.GetProperty("Panel.Font.Bold", false)
-            );
-            fonts.text.weight = fontWeight(
-              window.GetProperty("Panel.Font.Bold", false)
-            );
-            init();
-          },
-        },
-        {
-          caption: "italic",
-          func: () => {
-            window.SetProperty(
-              "Panel.Font.Italic",
-              !window.GetProperty("Panel.Font.Italic", false)
-            );
-            fonts.text.style = fontStyle(
-              window.GetProperty("Panel.Font.Italic", false)
-            );
-            init();
-          },
-        },
-      ],
-    },
-  ];
-  const textMenuItem = [
-    {
-      sub: [...colorMenuItems, ...styleItems],
-      func: () => {},
-      caption: "text",
-    },
-  ];
-  const menu = buildMenu(textMenuItem);
-
-  const idx = menu.menu!.TrackPopupMenu(x, y);
-  const f = menu.func[idx];
+  const idx = menu[obj.mode].menu.TrackPopupMenu(x, y);
+  const f = menu[obj.mode].func[idx];
   if (typeof f === "function") f();
 
-  menu.menu?.Dispose();
   return true;
+};
+const on_key_down: on_key_down = (vkey) => {
+  switch (obj.mode) {
+    case "Edit":
+      switch (vkey) {
+        case VK_LEFT:
+          fb.PlaybackTime = Math.max(
+            fb.PlaybackTime - obj.lyricsEditSeekStepTime / 1000,
+            0
+          );
+          break;
+        case VK_RIGHT:
+          fb.PlaybackTime = Math.min(
+            fb.PlaybackTime + obj.lyricsEditSeekStepTime / 1000,
+            fb.PlaybackLength
+          );
+          break;
+        case VK_RETURN:
+          const current = fb.PlaybackTime;
+          const index = calcCurrentLyricsLine(obj.lyrics.time, current);
+          if (index > obj.lyrics.view.length) return;
+          if (!fb.IsPaused) obj.lyrics.time[index + 1] = current;
+          break;
+      }
+      break;
+    case "EditView":
+      const current = fb.PlaybackTime;
+      const index = calcCurrentLyricsLine(obj.lyrics.time, current);
+      switch (vkey) {
+        case VK_UP:
+          if (obj.lyrics.time[index] >= 0) {
+            obj.lyrics.time[index] -= obj.lyricsEditStepTime / 1000;
+            fb.PlaybackTime = obj.lyrics.time[index];
+          }
+          break;
+        case VK_DOWN:
+          if (obj.lyrics.time[index] >= 0) {
+            obj.lyrics.time[index] += obj.lyricsEditStepTime / 1000;
+            fb.PlaybackTime = obj.lyrics.time[index];
+          }
+          break;
+        case VK_LEFT:
+          fb.PlaybackTime = Math.max(
+            fb.PlaybackTime - obj.lyricsEditSeekStepTime / 1000,
+            0
+          );
+          break;
+        case VK_RIGHT:
+          fb.PlaybackTime = Math.min(
+            fb.PlaybackTime + obj.lyricsEditSeekStepTime / 1000,
+            fb.PlaybackLength
+          );
+          break;
+      }
+      break;
+  }
+  window.Repaint();
 };
 
 /**
