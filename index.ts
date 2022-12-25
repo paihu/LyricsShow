@@ -177,13 +177,10 @@ const timeToTimeTag = (time: number) => {
 };
 
 const calcCurrentLyricsLine = (lyricTimes: number[], time: number) => {
-  let index = -1;
-  lyricTimes.forEach((current, idx) => {
-    if (current >= 0 && current < time) {
-      index = idx;
-    }
-  });
-  return index;
+  return lyricTimes.reduce(
+    (acc, cur, index) => (cur >= 0 && cur <= time ? index : acc),
+    -1
+  );
 };
 
 type Menu = {
@@ -202,16 +199,19 @@ const buildMenu = (
     caption: string;
     func?: () => void;
     sub?: { caption: string; func: () => void }[];
+    flag?: number | (() => number);
   }[],
   parent: MenuProps = {
     idx: 1,
     func: {},
   },
-  caption: string = ""
+  caption: string = "",
+  flag?: number | (() => number)
 ): Menu => {
   const menu = window.CreatePopupMenu();
   if (parent.menu) {
-    menu.AppendTo(parent.menu, MF_STRING, caption);
+    const flg = typeof flag === "function" ? flag() : flag || MF_STRING;
+    menu.AppendTo(parent.menu, flg, caption);
   } else {
     parent.menu = menu;
   }
@@ -226,7 +226,9 @@ const buildMenu = (
       continue;
     }
     parent.func[parent.idx] = item.func;
-    menu.AppendMenuItem(MF_STRING, parent.idx++, item.caption);
+    const flag =
+      typeof item.flag === "function" ? item.flag() : item.flag || MF_STRING;
+    menu.AppendMenuItem(flag, parent.idx++, item.caption);
   }
   return { ...parent, menu: parent.menu! };
 };
@@ -241,8 +243,9 @@ const fontStyle = (isItalic: boolean) => {
  * global objects
  */
 
+type Mode = "View" | "Edit" | "EditView";
 const obj: {
-  mode: "View" | "Edit" | "EditView";
+  mode: Mode;
   height: number;
   width: number;
   albumArt?: IJSImage;
@@ -378,10 +381,7 @@ const calcCurrentPosition = () => {
   if (!obj.lyricsIsSync)
     return (obj.lyricsImage.Height - obj.height) * (current / total);
 
-  const currentLine = obj.lyrics.time.reduce(
-    (acc, cur, index) => (cur === -1 ? acc : current > cur ? index : acc),
-    -1
-  );
+  const currentLine = calcCurrentLyricsLine(obj.lyrics.time, current);
   const nextLine = obj.lyrics.time.reduce((acc, cur, index) => {
     if (index < currentLine) return acc;
     if (acc === -1 && current < cur) return index;
@@ -691,13 +691,13 @@ const renderEditBackground = (
 const renderEditLyrics = (gr: IJSGraphics) => {
   const currentLine = obj.lyrics.time.reduce(
     (acc, cur, index) => (cur > 0 ? index : acc),
-    0
+    -1
   );
   var pos = 0;
   for (var i = currentLine - 2; i < obj.lyrics.view.length; i++) {
     const time = obj.lyrics.time[i] || 0;
     const layout = utils.CreateTextLayout(
-      `${i !== -2 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
+      `${i > -2 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
         obj.lyrics.view[i] || ""
       }`,
       fonts.text.name,
@@ -733,15 +733,12 @@ const renderEditLyrics = (gr: IJSGraphics) => {
 };
 const renderEditViewLyrics = (gr: IJSGraphics) => {
   const current = fb.PlaybackTime;
-  const currentLine =
-    calcCurrentLyricsLine(obj.lyrics.time, current) !== -1
-      ? calcCurrentLyricsLine(obj.lyrics.time, current)
-      : 0;
+  const currentLine = calcCurrentLyricsLine(obj.lyrics.time, current);
   var pos = 0;
   for (var i = currentLine - 2; i < obj.lyrics.view.length; i++) {
     const time = obj.lyrics.time[i] || 0;
     const layout = utils.CreateTextLayout(
-      `${i !== -2 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
+      `${i >= -1 && time !== -1 ? `[${timeToTimeTag(time)}] ` : ""}${
         obj.lyrics.view[i] || ""
       }`,
       fonts.text.name,
@@ -778,6 +775,12 @@ const renderEditViewLyrics = (gr: IJSGraphics) => {
 /**
  * menu
  */
+type MenuItems = {
+  caption: string;
+  func: () => void;
+  flag?: number | (() => number);
+  sub?: MenuItems;
+}[];
 
 const colorMenuItems = [
   {
@@ -865,8 +868,23 @@ const styleItems = [
 ];
 const mainMenuItem = [
   {
-    caption: "EditMode",
+    caption: "ReloadLyrics",
     func: () => {
+      const handle = fb.GetNowPlaying();
+      if (handle) {
+        loadTrackObj(handle);
+        window.Repaint();
+      }
+      handle?.Dispose();
+    },
+  },
+  {
+    caption: "EditMode",
+    flag: () => {
+      return obj.lyrics.raw.length > 0 ? MF_ENABLED : MF_DISABLED;
+    },
+    func: () => {
+      if (obj.lyrics.raw.length === 0) return;
       obj.mode = obj.lyricsIsSync ? "EditView" : "Edit";
       window.Repaint();
     },
@@ -951,16 +969,23 @@ const editColorMenuItems = [
 ];
 const editMenuItem = [
   {
-    caption: "EditMode",
+    caption: "ReloadLyrics",
     func: () => {
-      obj.mode = "Edit";
-      window.Repaint();
+      const handle = fb.GetNowPlaying();
+      if (handle) {
+        loadTrackObj(handle);
+        window.Repaint();
+      }
+      handle?.Dispose();
     },
   },
   {
     caption: "EditViewMode",
+    flag: () => {
+      return obj.mode === "Edit" ? MF_UNCHECKED : MF_CHECKED;
+    },
     func: () => {
-      obj.mode = "EditView";
+      obj.mode = obj.mode === "Edit" ? "EditView" : "Edit";
       window.Repaint();
     },
   },
@@ -980,7 +1005,6 @@ const editMenuItem = [
           time >= 0 ? `[${timeToTimeTag(time)}]` : ""
         }${cur.trim()}`;
       }, "");
-      console.log(lyricsStr);
       const handle = fb.GetNowPlaying();
       const fileInfo = handle?.GetFileInfo();
       if (!fileInfo) {
@@ -1010,10 +1034,10 @@ const editMenuItem = [
   },
   ...styleItems,
 ];
-const menu: { View: Menu; Edit: Menu; EditView: Menu } = {
-  View: buildMenu(mainMenuItem),
-  Edit: buildMenu(editMenuItem),
-  EditView: buildMenu(editMenuItem),
+const menu: { [key in Mode]: MenuItems } = {
+  View: mainMenuItem,
+  Edit: editMenuItem,
+  EditView: editMenuItem,
 };
 
 /**
@@ -1080,24 +1104,29 @@ const on_mouse_wheel = (step: number) => {
       setScrollPosition(step);
       break;
     case "Edit":
+      const currentLine = obj.lyrics.time.reduce(
+        (acc, cur, index) => (cur >= 0 ? index : acc),
+        -1
+      );
       if (step > 0) {
-        if (index >= 0) obj.lyrics.time[index] = -1;
+        if (currentLine >= 0) obj.lyrics.time[currentLine] = -1;
       } else {
-        if (index > obj.lyrics.view.length) return;
-        if (!fb.IsPaused) obj.lyrics.time[index + 1] = current;
+        if (currentLine >= obj.lyrics.view.length) return;
+        if (!fb.IsPaused) obj.lyrics.time[currentLine + 1] = current;
       }
       break;
     case "EditView":
       if (step > 0) {
-        for (var i = index - 1; i >= 0; i--)
-          if (obj.lyrics.time[i] && obj.lyrics.time[i] >= 0) {
-            fb.PlaybackTime = obj.lyrics.time[i];
+        for (var i = index - 1; i >= -1; i--) {
+          if (!obj.lyrics.time[i] || obj.lyrics.time[i] >= 0) {
+            fb.PlaybackTime = obj.lyrics.time[i] || 0;
             break;
           }
+        }
       } else {
         for (var i = index + 1; i < obj.lyrics.time.length; i++)
           if (obj.lyrics.time[i] && obj.lyrics.time[i] >= 0) {
-            fb.PlaybackTime = obj.lyrics.time[i] + 1;
+            fb.PlaybackTime = obj.lyrics.time[i];
             break;
           }
       }
@@ -1123,7 +1152,7 @@ const on_mouse_lbtn_dblclk: on_mouse_lbtn_dblclk = (_x, y) => {
       const beforePos = calcCurrentPosition();
       if (!beforePos) return;
       const line = getLyricsLine(y);
-      if (typeof line === "number") {
+      if (typeof line === "number" && obj.lyrics.time[line] >= 0) {
         fb.PlaybackTime = obj.lyrics.time[line];
         const afterPos = calcCurrentPosition();
         if (!afterPos) return;
@@ -1132,11 +1161,15 @@ const on_mouse_lbtn_dblclk: on_mouse_lbtn_dblclk = (_x, y) => {
     case "Edit":
       break;
   }
+  mainLoop();
 };
 const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
-  const idx = menu[obj.mode].menu.TrackPopupMenu(x, y);
-  const f = menu[obj.mode].func[idx];
+  const m = buildMenu(menu[obj.mode]);
+
+  const idx = m.menu.TrackPopupMenu(x, y);
+  const f = m.func[idx];
   if (typeof f === "function") f();
+  m.menu.Dispose();
 
   return true;
 };
@@ -1212,6 +1245,9 @@ const init = () => {
   if (fb.IsPaused) {
     stopTimer();
   }
+  //if (obj.mode === "Edit") {
+  //  stopTimer();
+  //}
   db?.Dispose();
   window.Repaint();
 };
