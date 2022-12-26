@@ -187,11 +187,13 @@ type Menu = {
   idx: number;
   menu: IMenuObj;
   func: { [key in number]?: () => void };
+  disposable: IMenuObj[];
 };
 type MenuProps = {
   idx: number;
   menu?: IMenuObj;
   func: { [key in number]?: () => void };
+  disposable: IMenuObj[];
 };
 
 const buildMenu = (
@@ -204,11 +206,13 @@ const buildMenu = (
   parent: MenuProps = {
     idx: 1,
     func: {},
+    disposable: [],
   },
   caption: string = "",
   flag?: number | (() => number)
 ): Menu => {
   const menu = window.CreatePopupMenu();
+  parent.disposable.push(menu);
   if (parent.menu) {
     const flg = typeof flag === "function" ? flag() : flag || MF_STRING;
     menu.AppendTo(parent.menu, flg, caption);
@@ -839,6 +843,11 @@ const styleItems = [
     sub: [
       {
         caption: "bold",
+        flag: () => {
+          return window.GetProperty("Panel.Font.Bold", false)
+            ? MF_CHECKED
+            : MF_UNCHECKED;
+        },
         func: () => {
           window.SetProperty(
             "Panel.Font.Bold",
@@ -852,6 +861,11 @@ const styleItems = [
       },
       {
         caption: "italic",
+        flag: () => {
+          return window.GetProperty("Panel.Font.Italic", false)
+            ? MF_CHECKED
+            : MF_UNCHECKED;
+        },
         func: () => {
           window.SetProperty(
             "Panel.Font.Italic",
@@ -887,6 +901,35 @@ const mainMenuItem = [
       if (obj.lyrics.raw.length === 0) return;
       obj.mode = obj.lyricsIsSync ? "EditView" : "Edit";
       window.Repaint();
+    },
+  },
+  {
+    caption: "OpenFolder",
+    flag: () => {
+      const handle = fb.GetNowPlaying();
+      const fileInfo = handle?.GetFileInfo();
+      if (!fileInfo) {
+        handle?.Dispose();
+        return MF_DISABLED;
+      }
+      const artist = getArtist(fileInfo);
+      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      fileInfo.Dispose();
+      handle?.Dispose();
+      return utils.IsFolder(path) ? MF_ENABLED : MF_DISABLED;
+    },
+    func: () => {
+      const handle = fb.GetNowPlaying();
+      const fileInfo = handle?.GetFileInfo();
+      if (!fileInfo) {
+        handle?.Dispose();
+        return;
+      }
+      const artist = getArtist(fileInfo);
+      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      fileInfo.Dispose();
+      handle?.Dispose();
+      if (utils.IsFolder(path)) ws.Exec(`explorer ${path}`);
     },
   },
   {
@@ -1025,6 +1068,35 @@ const editMenuItem = [
       utils.WriteTextFile(path, lyricsStr);
       fileInfo.Dispose();
       handle?.Dispose();
+    },
+  },
+  {
+    caption: "OpenFolder",
+    flag: () => {
+      const handle = fb.GetNowPlaying();
+      const fileInfo = handle?.GetFileInfo();
+      if (!fileInfo) {
+        handle?.Dispose();
+        return MF_DISABLED;
+      }
+      const artist = getArtist(fileInfo);
+      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      fileInfo.Dispose();
+      handle?.Dispose();
+      return utils.IsFolder(path) ? MF_ENABLED : MF_DISABLED;
+    },
+    func: () => {
+      const handle = fb.GetNowPlaying();
+      const fileInfo = handle?.GetFileInfo();
+      if (!fileInfo) {
+        handle?.Dispose();
+        return;
+      }
+      const artist = getArtist(fileInfo);
+      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      fileInfo.Dispose();
+      handle?.Dispose();
+      if (utils.IsFolder(path)) ws.Exec(`explorer ${path}`);
     },
   },
   {
@@ -1169,7 +1241,9 @@ const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
   const idx = m.menu.TrackPopupMenu(x, y);
   const f = m.func[idx];
   if (typeof f === "function") f();
-  m.menu.Dispose();
+  m.disposable.forEach((disposable) => {
+    disposable.Dispose();
+  });
 
   return true;
 };
