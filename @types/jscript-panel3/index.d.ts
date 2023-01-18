@@ -519,7 +519,7 @@ interface utils {
    * @param flags combine MessageBoxButtons,MessageBoxIcons
    * @return MessageBoxReturnValues (see IDOK...IDNO)
    */
-  MessageBox(prompt: string, title: string, flags: number): numer;
+  MessageBox(prompt: string, title: string, flags: number): number;
   ReadINI(
     path: string,
     section: string,
