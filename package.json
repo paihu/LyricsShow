@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "license": "MIT",
-  "packageManager": "pnpm@7.18.2",
+  "packageManager": "pnpm@7.24.3",
   "devDependencies": {
     "@types/activex-scripting": "^1.0.8",
     "@types/windows-script-host": "^5.8.3",

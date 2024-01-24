@@ -35,6 +35,14 @@ const getArtist = (handle: IFileInfo) => {
   }
   return "";
 };
+const getAlbumArtist= (handle: IFileInfo) => {
+  const albumArtistIdx = handle.MetaFind("ALBUM ARTIST");
+  if (albumArtistIdx !== -1) {
+    return handle.MetaValue(albumArtistIdx, 0);
+  }
+  return "";
+}
+
 const getTitle = (handle: IFileInfo) => {
   const idx = handle.MetaFind("TITLE");
   if (idx !== -1) {
@@ -82,8 +90,21 @@ const getLyrics = (handle: IMetadbHandle) => {
               .ReadTextFile(path, utils.DetectCharset(path))
               .split(/\r?\n/);
             lyrics.raw.push(...lines);
+          } else {
+            const artist = getAlbumArtist(fileInfo);
+            if (!artist) break;
+            const path = `${obj.lyricsSearchPath}${artist.replace(
+              "*",
+              "＊"
+            )}\\${title.replace("*", "＊")}.${type}`;
+            if (utils.IsFile(path)) {
+              const lines = utils
+                .ReadTextFile(path, utils.DetectCharset(path))
+                .split(/\r?\n/);
+              lyrics.raw.push(...lines);
+            }
+            break;
           }
-          break;
       }
     });
   } finally {
