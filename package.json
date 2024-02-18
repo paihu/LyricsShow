@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "main": "index.ts",
   "license": "MIT",
-  "packageManager": "pnpm@7.24.3",
+  "packageManager": "pnpm@8.14.1",
   "devDependencies": {
-    "@types/activex-scripting": "^1.0.8",
-    "@types/windows-script-host": "^5.8.3",
-    "typescript": "^4.9.4"
+    "@types/activex-scripting": "^1.0.12",
+    "@types/windows-script-host": "^5.8.6",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
   },
   "scripts": {
     "build": "tsc",

@@ -24,24 +24,21 @@ const getDefaultFont = (): {
     return JSON.parse(window.GetFontDUI(0));
   }
 };
-const getArtist = (handle: IFileInfo) => {
-  const artistIdx = handle.MetaFind("ARTIST");
-  if (artistIdx !== -1) {
-    return handle.MetaValue(artistIdx, 0);
-  }
+
+const getAlbumArtist = (handle: IFileInfo) => {
   const albumArtistIdx = handle.MetaFind("ALBUM ARTIST");
   if (albumArtistIdx !== -1) {
     return handle.MetaValue(albumArtistIdx, 0);
   }
   return "";
 };
-const getAlbumArtist= (handle: IFileInfo) => {
-  const albumArtistIdx = handle.MetaFind("ALBUM ARTIST");
-  if (albumArtistIdx !== -1) {
-    return handle.MetaValue(albumArtistIdx, 0);
+const getArtist = (handle: IFileInfo) => {
+  const artistIdx = handle.MetaFind("ARTIST");
+  if (artistIdx !== -1) {
+    return handle.MetaValue(artistIdx, 0);
   }
-  return "";
-}
+  return getAlbumArtist(handle);
+};
 
 const getTitle = (handle: IFileInfo) => {
   const idx = handle.MetaFind("TITLE");
@@ -71,7 +68,7 @@ const getLyrics = (handle: IMetadbHandle) => {
             const count = fileInfo.MetaValueCount(lyricsIdx);
             for (var i = 0; i < count; i++) {
               lyrics.raw.push(
-                ...fileInfo.MetaValue(lyricsIdx, i).split(/\r?\n/)
+                ...fileInfo.MetaValue(lyricsIdx, i).split(/\r?\n/),
               );
             }
           }
@@ -83,7 +80,7 @@ const getLyrics = (handle: IMetadbHandle) => {
           if (!artist) break;
           const path = `${obj.lyricsSearchPath}${artist.replace(
             "*",
-            "＊"
+            "＊",
           )}\\${title.replace("*", "＊")}.${type}`;
           if (utils.IsFile(path)) {
             const lines = utils
@@ -95,7 +92,7 @@ const getLyrics = (handle: IMetadbHandle) => {
             if (!artist) break;
             const path = `${obj.lyricsSearchPath}${artist.replace(
               "*",
-              "＊"
+              "＊",
             )}\\${title.replace("*", "＊")}.${type}`;
             if (utils.IsFile(path)) {
               const lines = utils
@@ -131,7 +128,7 @@ const calcImageSize = (
   dispW: number,
   dispH: number,
   stretch: boolean,
-  keepAspectRatio: boolean
+  keepAspectRatio: boolean,
 ) => {
   if (!image) return;
   let size: { x: number; y: number; width: number; height: number };
@@ -190,7 +187,7 @@ const timeToTimeTag = (time: number) => {
   const hour = Math.floor(time / 3600).toString();
   if (hour !== "0") {
     return `${padding02(hour)}:${padding02(min)}:${padding02(sec)}.${padding02(
-      msec
+      msec,
     )}`;
   } else {
     return `${padding02(min)}:${padding02(sec)}.${padding02(msec)}`;
@@ -200,7 +197,7 @@ const timeToTimeTag = (time: number) => {
 const calcCurrentLyricsLine = (lyricTimes: number[], time: number) => {
   return lyricTimes.reduce(
     (acc, cur, index) => (cur >= 0 && cur <= time ? index : acc),
-    -1
+    -1,
   );
 };
 
@@ -230,7 +227,7 @@ const buildMenu = (
     disposable: [],
   },
   caption: string = "",
-  flag?: number | (() => number)
+  flag?: number | (() => number),
 ): Menu => {
   const menu = window.CreatePopupMenu();
   parent.disposable.push(menu);
@@ -245,7 +242,7 @@ const buildMenu = (
       const child = buildMenu(
         item.sub,
         { ...parent, menu: menu },
-        item.caption
+        item.caption,
       );
       parent = { ...child, menu: parent.menu };
       continue;
@@ -306,13 +303,13 @@ const obj: {
   lyricsIsSync: false,
   lyricsUnsyncedHighlight: window.GetProperty(
     "Panel.Lyrics.Unsynced.Highlight",
-    false
+    false,
   ),
   lyricsLayout: [],
   lyricsOrder: ["LYRICS", "lrc", "UNSYNCED LYRICS", "txt"],
   lyricsSearchPath: window.GetProperty<string>(
     "Panel.SearchPath",
-    ws.SpecialFolders.Item("Desktop")
+    ws.SpecialFolders.Item("Desktop"),
   ),
   lyricsEditStepTime: window.GetProperty("Panel.Edit.stepTime", 14),
   lyricsEditSeekStepTime: window.GetProperty("Panel.Edit.SeekTime", 5000),
@@ -325,9 +322,9 @@ const obj: {
 const fonts = {
   text: {
     name: utils.CheckFont(
-      window.GetProperty("Panel.Font.Name", getDefaultFont().Name)
+      window.GetProperty("Panel.Font.Name", getDefaultFont().Name),
     )
-      ? window.GetProperty("Panel.Font.Name", "Yu Gothic UI")
+      ? window.GetProperty("Panel.Font.Name", getDefaultFont().Name)
       : "Yu Gothic UI",
     size: window.GetProperty("Panel.Font.Size", 13),
     weight: fontWeight(window.GetProperty("Panel.Font.Bold", false)),
@@ -348,30 +345,30 @@ const colors = {
   main: window.GetProperty("Panel.Lyrics.Main.Color", RGB(190, 190, 190)),
   highlight: window.GetProperty(
     "Panel.Lyrics.Highlight.Color",
-    RGB(255, 142, 196)
+    RGB(255, 142, 196),
   ),
   shadow: window.GetProperty("Panel.Lyrics.Shadow.Color", RGB(0, 0, 0)),
   background: window.GetProperty(
     "Panel.Lyrics.Background.Color",
-    RGB(76, 76, 76)
+    RGB(76, 76, 76),
   ),
   editMain: window.GetProperty("Panel.Edit.Main.Color", RGB(80, 80, 80)),
 
   editBackground: window.GetProperty(
     "Panel.Edit.Background.Color",
-    RGB(255, 255, 255)
+    RGB(255, 255, 255),
   ),
   editHighlight: window.GetProperty(
     "Panel.Edit.HighlightBackground.Color",
-    RGB(193, 219, 252)
+    RGB(193, 219, 252),
   ),
   editViewBackground: window.GetProperty(
     "Panel.EditView.Background.Color",
-    RGB(236, 244, 254)
+    RGB(236, 244, 254),
   ),
   editViewHighlight: window.GetProperty(
     "Panel.EditView.HighlightBackground.Color",
-    RGB(193, 219, 252)
+    RGB(193, 219, 252),
   ),
 };
 const LyricsView = {
@@ -380,7 +377,7 @@ const LyricsView = {
     opacity: window.GetProperty("Panel.Background.Alpha", 0.2),
     keepAspectRatio: window.GetProperty(
       "Panel.Background.KeepAspectRatio",
-      true
+      true,
     ),
     stretch: window.GetProperty("Panel.Background.Stretch", true),
   },
@@ -515,7 +512,7 @@ const generateLyricsImage = () => {
         h,
         !obj.lyricsIsSync && obj.lyricsUnsyncedHighlight
           ? colors.highlight
-          : colors.main
+          : colors.main,
       );
       y += h;
     });
@@ -543,7 +540,7 @@ const generateLyricsHighlightImage = () => {
       y + obj.lyrics.y[highlightIndex],
       obj.width,
       obj.lyricsLayout[highlightIndex].CalcTextHeight(obj.width),
-      colors.highlight
+      colors.highlight,
     );
     obj.lyricsHighlightImage.ReleaseGraphics();
   }
@@ -558,7 +555,7 @@ const generateLyricsLayout = (str: string) => {
     fonts.text.stretch,
     DWRITE_TEXT_ALIGNMENT_CENTER,
     DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-    DWRITE_WORD_WRAPPING_WRAP
+    DWRITE_WORD_WRAPPING_WRAP,
   );
 };
 const generateLyricsLayouts = () => {
@@ -570,7 +567,7 @@ const calcLyricsLineY = () => {
   for (var i = 0; i < obj.lyricsLayout.length; i++) {
     const layout = obj.lyricsLayout[i];
     obj.lyrics.y.push(
-      obj.lyrics.y[obj.lyrics.y.length - 1] + layout.CalcTextHeight(obj.width)
+      obj.lyrics.y[obj.lyrics.y.length - 1] + layout.CalcTextHeight(obj.width),
     );
   }
 };
@@ -596,7 +593,7 @@ const renderAlbumArt = (gr: IJSGraphics) => {
       obj.width,
       obj.height - obj.padding * 2,
       LyricsView.background.stretch,
-      LyricsView.background.keepAspectRatio
+      LyricsView.background.keepAspectRatio,
     )!;
     gr.DrawImage(
       obj.albumArt,
@@ -609,7 +606,7 @@ const renderAlbumArt = (gr: IJSGraphics) => {
       obj.albumArt.Width,
       obj.albumArt.Height,
       LyricsView.background.opacity,
-      LyricsView.background.angle
+      LyricsView.background.angle,
     );
   }
 };
@@ -620,7 +617,7 @@ const renderLyric = (
   y: number,
   w: number,
   h: number,
-  colour = colors.main
+  colour = colors.main,
 ) => {
   gr.WriteTextLayout(layout, colour, x, y, w, h);
 };
@@ -631,9 +628,9 @@ const renderLyrics = (gr: IJSGraphics) => {
   const y = Math.max(
     Math.min(
       currentPosition + obj.step * obj.stepHight,
-      obj.lyricsImage.Height - obj.height
+      obj.lyricsImage.Height - obj.height,
     ),
-    0
+    0,
   );
   if (LyricsView.shadow.enabled && obj.lyricsShadowImage)
     gr.DrawImage(
@@ -645,7 +642,7 @@ const renderLyrics = (gr: IJSGraphics) => {
       0,
       y,
       obj.width,
-      obj.height - obj.padding * 2
+      obj.height - obj.padding * 2,
     );
 
   gr.DrawImage(
@@ -657,7 +654,7 @@ const renderLyrics = (gr: IJSGraphics) => {
     0,
     y,
     obj.width,
-    obj.height - obj.padding * 2
+    obj.height - obj.padding * 2,
   );
   if (obj.lyricsHighlightImage)
     gr.DrawImage(
@@ -669,7 +666,7 @@ const renderLyrics = (gr: IJSGraphics) => {
       0,
       y,
       obj.width,
-      obj.height - obj.padding * 2
+      obj.height - obj.padding * 2,
     );
 };
 const getLyricsLine = (y: number) => {
@@ -679,14 +676,14 @@ const getLyricsLine = (y: number) => {
   const lyricsImageY =
     Math.min(
       currentPosition + obj.step * obj.stepHight,
-      obj.lyricsImage.Height - obj.height
+      obj.lyricsImage.Height - obj.height,
     ) +
     obj.padding +
     y -
     obj.height / 2;
   const line = obj.lyrics.y.reduce(
     (acc, cur, index) => (cur < lyricsImageY ? index - 1 : acc),
-    -1
+    -1,
   );
   if (!obj.lyrics.view[line]) return;
   return line;
@@ -698,7 +695,7 @@ const getLyricsLine = (y: number) => {
 
 const renderEditBackground = (
   gr: IJSGraphics,
-  colour = colors.editBackground
+  colour = colors.editBackground,
 ) => {
   gr.FillRectangle(0, 0, obj.width, obj.height, colour);
   const h = obj.lyricsLayout[0].CalcTextHeight(100000000000000);
@@ -709,14 +706,14 @@ const renderEditBackground = (
       obj.width - obj.padding,
       i,
       1,
-      RGB(192, 192, 192)
+      RGB(192, 192, 192),
     );
   }
 };
 const renderEditLyrics = (gr: IJSGraphics) => {
   const currentLine = obj.lyrics.time.reduce(
     (acc, cur, index) => (cur > 0 ? index : acc),
-    -1
+    -1,
   );
   var pos = 0;
   for (var i = currentLine - 2; i < obj.lyrics.view.length; i++) {
@@ -732,7 +729,7 @@ const renderEditLyrics = (gr: IJSGraphics) => {
       fonts.text.stretch,
       DWRITE_TEXT_ALIGNMENT_CENTER,
       DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-      DWRITE_WORD_WRAPPING_WRAP
+      DWRITE_WORD_WRAPPING_WRAP,
     );
     if (i === currentLine) {
       gr.FillRectangle(
@@ -740,7 +737,7 @@ const renderEditLyrics = (gr: IJSGraphics) => {
         pos,
         obj.width,
         layout.CalcTextHeight(obj.width),
-        setAlpha(colors.editHighlight, 210)
+        setAlpha(colors.editHighlight, 210),
       );
     }
     gr.WriteTextLayout(
@@ -749,7 +746,7 @@ const renderEditLyrics = (gr: IJSGraphics) => {
       0,
       pos,
       obj.width,
-      layout.CalcTextHeight(obj.width)
+      layout.CalcTextHeight(obj.width),
     );
     pos += layout.CalcTextHeight(obj.width);
     releaseLyricsLayouts(layout);
@@ -773,7 +770,7 @@ const renderEditViewLyrics = (gr: IJSGraphics) => {
       fonts.text.stretch,
       DWRITE_TEXT_ALIGNMENT_CENTER,
       DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-      DWRITE_WORD_WRAPPING_WRAP
+      DWRITE_WORD_WRAPPING_WRAP,
     );
     if (i === currentLine) {
       gr.FillRectangle(
@@ -781,7 +778,7 @@ const renderEditViewLyrics = (gr: IJSGraphics) => {
         pos,
         obj.width,
         layout.CalcTextHeight(obj.width),
-        setAlpha(colors.editViewHighlight, 210)
+        setAlpha(colors.editViewHighlight, 210),
       );
     }
     gr.WriteTextLayout(
@@ -790,7 +787,7 @@ const renderEditViewLyrics = (gr: IJSGraphics) => {
       0,
       pos,
       obj.width,
-      layout.CalcTextHeight(obj.width)
+      layout.CalcTextHeight(obj.width),
     );
     pos += layout.CalcTextHeight(obj.width);
     releaseLyricsLayouts(layout);
@@ -807,6 +804,30 @@ type MenuItems = {
   sub?: MenuItems;
 }[];
 
+const fontMenuItems = [
+  {
+    caption: "font",
+    func: () => {},
+    sub: [
+      {
+        caption: "size",
+        func: () => {
+          window.SetProperty(
+            "Panel.Font.Size",
+            utils.InputBox(
+              "Input font size",
+              "font size",
+              window.GetProperty("Panel.Font.Size", "13"),
+            ),
+          );
+          fonts.text.size = Number(window.GetProperty("Panel.Font.Size", "13"));
+          init();
+        },
+      },
+    ],
+  },
+];
+
 const colorMenuItems = [
   {
     caption: "color",
@@ -817,11 +838,11 @@ const colorMenuItems = [
         func: () => {
           window.SetProperty(
             "Panel.Lyrics.Main.Color",
-            utils.ColourPicker(colors.main)
+            utils.ColourPicker(colors.main),
           );
           colors.main = window.GetProperty(
             "Panel.Lyrics.Main.Color",
-            colors.main
+            colors.main,
           );
           init();
         },
@@ -831,11 +852,11 @@ const colorMenuItems = [
         func: () => {
           window.SetProperty(
             "Panel.Lyrics.Shadow.Color",
-            utils.ColourPicker(colors.shadow)
+            utils.ColourPicker(colors.shadow),
           );
           colors.shadow = window.GetProperty(
             "Panel.Lyrics.Shadow.Color",
-            colors.shadow
+            colors.shadow,
           );
           init();
         },
@@ -845,11 +866,11 @@ const colorMenuItems = [
         func: () => {
           window.SetProperty(
             "Panel.Lyrics.Highlight.Color",
-            utils.ColourPicker(colors.highlight)
+            utils.ColourPicker(colors.highlight),
           );
           colors.highlight = window.GetProperty(
             "Panel.Lyrics.Highlight.Color",
-            colors.highlight
+            colors.highlight,
           );
           init();
         },
@@ -872,10 +893,10 @@ const styleItems = [
         func: () => {
           window.SetProperty(
             "Panel.Font.Bold",
-            !window.GetProperty("Panel.Font.Bold", false)
+            !window.GetProperty("Panel.Font.Bold", false),
           );
           fonts.text.weight = fontWeight(
-            window.GetProperty("Panel.Font.Bold", false)
+            window.GetProperty("Panel.Font.Bold", false),
           );
           init();
         },
@@ -890,10 +911,10 @@ const styleItems = [
         func: () => {
           window.SetProperty(
             "Panel.Font.Italic",
-            !window.GetProperty("Panel.Font.Italic", false)
+            !window.GetProperty("Panel.Font.Italic", false),
           );
           fonts.text.style = fontStyle(
-            window.GetProperty("Panel.Font.Italic", false)
+            window.GetProperty("Panel.Font.Italic", false),
           );
           init();
         },
@@ -954,7 +975,7 @@ const mainMenuItem = [
     },
   },
   {
-    sub: [...colorMenuItems, ...styleItems],
+    sub: [...fontMenuItems, ...colorMenuItems, ...styleItems],
     func: () => {},
     caption: "text",
   },
@@ -966,11 +987,11 @@ const editColorMenuItems = [
     func: () => {
       window.SetProperty(
         "Panel.Lyrics.Main.Color",
-        utils.ColourPicker(colors.editMain)
+        utils.ColourPicker(colors.editMain),
       );
       colors.editMain = window.GetProperty(
         "Panel.Edit.Main.Color",
-        colors.editMain
+        colors.editMain,
       );
     },
   },
@@ -979,11 +1000,11 @@ const editColorMenuItems = [
     func: () => {
       window.SetProperty(
         "Panel.Edit.Background.Color",
-        utils.ColourPicker(colors.editBackground)
+        utils.ColourPicker(colors.editBackground),
       );
       colors.editBackground = window.GetProperty(
         "Panel.Edit.HighlightBackground.Color",
-        colors.editBackground
+        colors.editBackground,
       );
       init();
     },
@@ -993,11 +1014,11 @@ const editColorMenuItems = [
     func: () => {
       window.SetProperty(
         "Panel.EditView.Background.Color",
-        utils.ColourPicker(colors.editHighlight)
+        utils.ColourPicker(colors.editHighlight),
       );
       colors.editHighlight = window.GetProperty(
         "Panel.EditView.HighlightBackground.Color",
-        colors.editHighlight
+        colors.editHighlight,
       );
       init();
     },
@@ -1007,11 +1028,11 @@ const editColorMenuItems = [
     func: () => {
       window.SetProperty(
         "Panel.Lyrics.Highlight.Color",
-        utils.ColourPicker(colors.editViewBackground)
+        utils.ColourPicker(colors.editViewBackground),
       );
       colors.editViewBackground = window.GetProperty(
         "Panel.Lyrics.Highlight.Color",
-        colors.editViewBackground
+        colors.editViewBackground,
       );
       init();
     },
@@ -1021,11 +1042,11 @@ const editColorMenuItems = [
     func: () => {
       window.SetProperty(
         "Panel.Lyrics.Highlight.Color",
-        utils.ColourPicker(colors.editViewHighlight)
+        utils.ColourPicker(colors.editViewHighlight),
       );
       colors.editViewHighlight = window.GetProperty(
         "Panel.Lyrics.Highlight.Color",
-        colors.editViewHighlight
+        colors.editViewHighlight,
       );
       init();
     },
@@ -1084,7 +1105,7 @@ const editMenuItem = [
       }
       const path = `${obj.lyricsSearchPath}${artist.replace(
         "*",
-        "＊"
+        "＊",
       )}\\${title.replace("*", "＊")}.lrc`;
       utils.WriteTextFile(path, lyricsStr);
       fileInfo.Dispose();
@@ -1199,7 +1220,7 @@ const on_mouse_wheel = (step: number) => {
     case "Edit":
       const currentLine = obj.lyrics.time.reduce(
         (acc, cur, index) => (cur >= 0 ? index : acc),
-        -1
+        -1,
       );
       if (step > 0) {
         if (currentLine >= 0) obj.lyrics.time[currentLine] = -1;
@@ -1275,13 +1296,13 @@ const on_key_down: on_key_down = (vkey) => {
         case VK_LEFT:
           fb.PlaybackTime = Math.max(
             fb.PlaybackTime - obj.lyricsEditSeekStepTime / 1000,
-            0
+            0,
           );
           break;
         case VK_RIGHT:
           fb.PlaybackTime = Math.min(
             fb.PlaybackTime + obj.lyricsEditSeekStepTime / 1000,
-            fb.PlaybackLength
+            fb.PlaybackLength,
           );
           break;
         case VK_RETURN:
@@ -1311,13 +1332,13 @@ const on_key_down: on_key_down = (vkey) => {
         case VK_LEFT:
           fb.PlaybackTime = Math.max(
             fb.PlaybackTime - obj.lyricsEditSeekStepTime / 1000,
-            0
+            0,
           );
           break;
         case VK_RIGHT:
           fb.PlaybackTime = Math.min(
             fb.PlaybackTime + obj.lyricsEditSeekStepTime / 1000,
-            fb.PlaybackLength
+            fb.PlaybackLength,
           );
           break;
       }
