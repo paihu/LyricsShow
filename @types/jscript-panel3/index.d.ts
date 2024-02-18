@@ -43,7 +43,7 @@ interface IJSGraphics {
     radiusX: number,
     radiusY: number,
     lineWidth: number,
-    colour: number,
+    colour: number
   );
   DrawImage(
     image: IJSImage,
@@ -56,7 +56,7 @@ interface IJSGraphics {
     srcW: number,
     srcH: number,
     opacity?: number,
-    angle?: number,
+    angle?: number
   );
 
   DrawImageWithMask(
@@ -65,7 +65,7 @@ interface IJSGraphics {
     x: number,
     y: number,
     w: number,
-    h: number,
+    h: number
   );
 
   DrawLine(
@@ -74,7 +74,7 @@ interface IJSGraphics {
     endX: number,
     endY: number,
     lineWidth: number,
-    colour: number,
+    colour: number
   );
 
   DrawRectangle(
@@ -83,7 +83,7 @@ interface IJSGraphics {
     w: number,
     h: number,
     lineWidth: number,
-    colour: number,
+    colour: number
   );
   DrawRoundedRectangle(
     startX: number,
@@ -93,14 +93,14 @@ interface IJSGraphics {
     radiusX: number,
     radiusY: number,
     lineWidth: number,
-    colour: number,
+    colour: number
   );
   FillEllipse(
     centreX: number,
     centreY: number,
     radiusX: number,
     radiusY: number,
-    colour: number,
+    colour: number
   );
   FillGradientRectangle(
     startX: number,
@@ -109,21 +109,21 @@ interface IJSGraphics {
     h: number,
     direction: number,
     startColour: number,
-    endColour: number,
+    endColour: number
   );
   FillGradientRectangleAdvanced(
     startX: number,
     startY: number,
     w: number,
     h: number,
-    brushStr: string,
+    brushStr: string
   );
   FillRectangle(
     startX: number,
     startY: number,
     w: number,
     h: number,
-    colour: number,
+    colour: number
   );
   FillRoundedRectangle(
     startX: number,
@@ -132,7 +132,7 @@ interface IJSGraphics {
     h: number,
     radiusX: number,
     radiusY: number,
-    colour: number,
+    colour: number
   );
   WriteText(
     text: string,
@@ -145,7 +145,7 @@ interface IJSGraphics {
     textAlignment?: number,
     paragraphAlignment?: number,
     wordWrapping?: number,
-    trimmingGranularity?: number,
+    trimmingGranularity?: number
   );
   WriteTextLayout(
     textLayout: ITextLayout,
@@ -154,7 +154,7 @@ interface IJSGraphics {
     startY: number,
     w: number,
     h: number,
-    verticalOffset?: number,
+    verticalOffset?: number
   );
 }
 
@@ -202,7 +202,7 @@ interface IMenuObj {
   CheckMenuRadioItem(
     firstItemId: number,
     lastItemId: number,
-    selectedItemId: number,
+    selectedItemId: number
   );
   Dispose();
   /**
@@ -292,7 +292,7 @@ interface IThemeManager {
     x: number,
     y: number,
     w: number,
-    h: number,
+    h: number
   );
   GetThemeColour(propId: number): number;
   IsThemePartDefined(partId: number): boolean;
@@ -431,7 +431,7 @@ interface utils {
     fontSize: number,
     fontWeight?: DWRITE_FONT_WEIGHT,
     fontStyle?: DWRITE_FONT_STYLE,
-    fontStretch?: DWRITE_FONT_STRETCH,
+    fontStretch?: DWRITE_FONT_STRETCH
   ): number;
   CheckFont(name: string): boolean;
   ColourPicker(defaultColour: number): number;
@@ -448,7 +448,7 @@ interface utils {
     textAlignment?: number,
     paragraphAlignment?: number,
     wordWrapping?: number,
-    trimmingGranularity?: number,
+    trimmingGranularity?: number
   ): ITextLayout;
   CreateTextLayout2(
     text: string,
@@ -456,7 +456,7 @@ interface utils {
     textAlignment?: DWRITE_TEXT_ALIGNMENT,
     paragraphAlignment?: DWRITE_PARAGRAPH_ALIGNMENT,
     wordWrapping?: DWRITE_WORD_WRAPPING,
-    trimmingGranularity?: DWRITE_TRIMMING_GRANULARITY,
+    trimmingGranularity?: DWRITE_TRIMMING_GRANULARITY
   ): ITextLayout;
   DateStringToTimestamp(str: string): number;
   DetectCharset(path: string): number;
@@ -477,7 +477,7 @@ interface utils {
   Glob(
     pattern: string,
     excludeMask?: number,
-    includeMask?: number,
+    includeMask?: number
   ): VBArray<string>;
   /**
    *
@@ -495,13 +495,13 @@ interface utils {
     url: string,
     userAgentOrHeaders: string,
     postData: string,
-    contentType: string,
+    contentType: string
   ): number;
   InputBox(
     prompt: string,
     title: string,
     defaultValue?: string,
-    errorOnCancel?: boolean,
+    errorOnCancel?: boolean
   ): string;
   IsFile(path: string): boolean;
   IsFolder(path: string): boolean;
@@ -524,7 +524,7 @@ interface utils {
     path: string,
     section: string,
     key: string,
-    defaultValue?: string,
+    defaultValue?: string
   ): string;
   ReadTextFile(path: string, codepage?: number): string;
   ReadUTF8(path: string): string;
@@ -611,11 +611,11 @@ interface Window {
    * If no value is present and defaultValue is not null or undefined, it will be stored and returned.
    */
   GetProperty<T extends number | string | boolean = string>(
-    name: string,
+    name: string
   ): T | null;
   GetProperty<T extends number | string | boolean>(
     name: string,
-    defaultValue: T,
+    defaultValue: T
   ): T extends number ? number : T extends string ? string : boolean;
   /**
    * Listen for notifications in other panels with on_notify_data.
@@ -624,7 +624,7 @@ interface Window {
    */
   NotifyOthers(
     name: string,
-    info: string | number | string[] | number[] | Object,
+    info: string | number | string[] | number[] | Object
   );
   Reload(clearProperties?: boolean);
   Repaint();
@@ -650,26 +650,26 @@ type on_cursor_follow_playback_changed = (state: boolean) => void;
 type on_download_file_done = (
   path: string,
   success: boolean,
-  errorText: string,
+  errorText: string
 ) => void;
 type on_drag_drop = (
   action: IDropAction,
   x: number,
   y: number,
-  mask: number,
+  mask: number
 ) => void;
 type on_drag_enter = (
   action: IDropAction,
   x: number,
   y: number,
-  mask: number,
+  mask: number
 ) => void;
 type on_drag_leave = () => void;
 type on_drag_over = (
   action: IDropAction,
   x: number,
   y: number,
-  mask: number,
+  mask: number
 ) => void;
 type on_dsp_preset_changed = () => void;
 type on_focus = (isFocus: boolean) => void;
@@ -677,17 +677,17 @@ type on_font_changed = () => void;
 type on_get_album_art_done = (
   handel: IMetadbHandle,
   artId: number,
-  image: IJSImage,
+  image: IJSImage
 ) => void;
 type on_http_request_done = (
   taskId: number,
   success: boolean,
-  responseText: string,
+  responseText: string
 ) => void;
 type on_item_focus_change = (
   playlistIndex: number,
   from: number,
-  to: number,
+  to: number
 ) => void;
 type on_item_played = (handle: IMetadbHandle) => void;
 /**
@@ -701,18 +701,18 @@ type on_key_up = (vkey: number) => void;
 type on_library_items_added = (handleList: IMetadbHandleList) => void;
 type on_library_items_changed = (
   handleList: IMetadbHandleList,
-  fromHook: boolean,
+  fromHook: boolean
 ) => void;
 type on_library_items_removed = (handleList: IMetadbHandleList) => void;
 type on_load_image_done = (imagePath: string, image: IJSImage | null) => void;
 type on_locations_added = (
   taskId: number,
-  handleList: IMetadbHandleList,
+  handleList: IMetadbHandleList
 ) => void;
 type on_main_menu = (index: number) => void;
 type on_metadb_changed = (
   handleList: IMetadbHandleList,
-  fromHook: boolean,
+  fromHook: boolean
 ) => void;
 type on_mouse_lbtn_dblclk = (x: number, y: number, mask: number) => void;
 type on_mouse_lbtn_down = (x: number, y: number, mask: number) => void;
@@ -729,7 +729,7 @@ type on_mouse_wheel = (step: number) => void;
 type on_mouse_wheel_h = (step: number) => void;
 type on_notify_data = (
   name: string,
-  info: string | number | string[] | Object,
+  info: string | number | string[] | Object
 ) => void;
 type on_output_device_changed = () => void;
 type on_paint = (gr: IJSGraphics) => void;
@@ -760,7 +760,7 @@ type on_playback_time = (time: number) => void;
 type on_playlist_items_added = (playlistIndex: number) => void;
 type on_playlist_items_removed = (
   playlistIndex: number,
-  newCount: number,
+  newCount: number
 ) => void;
 type on_playlist_items_reordered = (playlistIndex: number) => void;
 type on_playlist_items_selection_change = () => void;
@@ -808,7 +808,7 @@ declare const DrawColouredText: (
   textAlignment: number,
   paragraphAlignment: number,
   wordWrapping: number,
-  trimmingGranularity: number,
+  trimmingGranularity: number
 ) => void;
 
 declare const StripCode: (text: string, chr: string) => string;
@@ -816,7 +816,7 @@ declare const StripCodes: (text: string) => string;
 type ColourStyle = { Start: number; Length: number; Colour: number };
 declare const GetColourStyles: (
   text: string,
-  defaultColour: number,
+  defaultColour: number
 ) => ColourStyle[];
 type FontStyle = {
   Start: number;
@@ -833,19 +833,19 @@ declare const DrawRectangle: (
   y: number,
   w: number,
   h: number,
-  colour: number,
+  colour: number
 ) => void;
 declare const EnableMenuIf: (
-  condition: number,
+  condition: number
 ) => typeof MF_STRING | typeof MF_GRAYED;
 declare const CheckMenuIf: (
-  condition: number,
+  condition: number
 ) => typeof MF_CHECKED | typeof MF_STRING;
 declare const GetMenuFlags: (enabled: boolean, checked: boolean) => number;
 declare const CreateFontString: (
   name: string,
   size: number,
-  bold: boolean,
+  bold: boolean
 ) => string;
 
 type DWRITE_FONT_WEIGHT = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;

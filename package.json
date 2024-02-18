@@ -16,6 +16,7 @@
     "typescript": "^5.3.3"
   },
   "scripts": {
+    "fix": "prettier -w index.ts && eslint --fix index.ts" ,
     "build": "tsc",
     "watch": "tsc -w"
   }
