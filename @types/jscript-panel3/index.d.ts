@@ -136,7 +136,7 @@ interface IJSGraphics {
   );
   WriteText(
     text: string,
-    font: FontString,
+    font: string,
     colour: number,
     startX: number,
     startY: number,
@@ -149,7 +149,7 @@ interface IJSGraphics {
   );
   WriteTextLayout(
     textLayout: ITextLayout,
-    colour: cumber | string,
+    colour: number | string,
     startX: number,
     startY: number,
     w: number,
@@ -331,7 +331,7 @@ interface Console {
   GetLines(withTimestamp?: boolean): VBArray<string>;
   ClearBacklog();
 }
-const console: console;
+declare const console: Console;
 
 interface fb {
   AlwaysOnTop: boolean;
@@ -344,7 +344,7 @@ interface fb {
   readonly PlaybackLength: number;
   PlaybackTime: number;
   readonly ProfilePath: string;
-  ReplaygainMode: ReplaygainMode;
+  ReplayGainMode: ReplayGainMode;
   StopAfterCurrent: boolean;
   Volume: number;
 
@@ -412,7 +412,7 @@ interface fb {
   ShowLibrarySearchUI(query: string);
   TitleFormat(pattern: string): ITitleFormat;
 }
-declare const fb: fb;
+export declare const fb: fb;
 
 interface plman {
   ActivePlaylist: number;
@@ -430,7 +430,7 @@ interface utils {
     fontName: string,
     fontSize: number,
     fontWeight?: DWRITE_FONT_WEIGHT,
-    fontStyle?: DWrite_FONT_STYLE,
+    fontStyle?: DWRITE_FONT_STYLE,
     fontStretch?: DWRITE_FONT_STRETCH,
   ): number;
   CheckFont(name: string): boolean;
@@ -508,7 +508,7 @@ interface utils {
   IsKeyPressed(vkey: number): boolean;
   ListFiles(folder: string, recursive: boolean): VBArray<string>;
   ListFolders(folder: string, recursive: boolean): VBArray<string>;
-  ListFonts(): VBArrays<string>;
+  ListFonts(): VBArray<string>;
   LoadImage(path: string): IJSImage | null;
   LoadImageAsync(windowId: number, path: string);
   LoadSVG(pathOrXML: string, maxWidth: number): IJSImage | null;
@@ -629,7 +629,7 @@ interface Window {
   Reload(clearProperties?: boolean);
   Repaint();
   RepaintRect(x: number, y: number, w: number, h: number);
-  SetCursor(id: SetCursorValues);
+  SetCursor(id: string);
   SetInterval(func: () => void, delay: number): number;
   SetProperty(name: string, value: string | number | boolean | null): void;
   SetTimeout(func: () => void, delay: number): number;
@@ -703,7 +703,6 @@ type on_library_items_changed = (
   handleList: IMetadbHandleList,
   fromHook: boolean,
 ) => void;
-type on_library_items_removed = (handleList: IMetadbHandleList) => void;
 type on_library_items_removed = (handleList: IMetadbHandleList) => void;
 type on_load_image_done = (imagePath: string, image: IJSImage | null) => void;
 type on_locations_added = (
@@ -794,7 +793,6 @@ declare const getBlue: (colour: number) => number;
 declare const setAlpha: (colour: number, a: number) => number;
 declare const setRed: (colour: number, r: number) => number;
 declare const setGreen: (colour: number, g: number) => number;
-declare const setBlue: (colour: number, b: number) => number;
 declare const setBlue: (c1: number, c2: number, factor: number) => number;
 declare const Liminance: (colour: number) => number;
 declare const DetermineTextColour: (background: number) => number;
@@ -850,6 +848,7 @@ declare const CreateFontString: (
   bold: boolean,
 ) => string;
 
+type DWRITE_FONT_WEIGHT = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
 declare const DWRITE_FONT_WEIGHT_THIN: 100;
 declare const DWRITE_FONT_WEIGHT_EXTRA_LIGHT: 200;
 declare const DWRITE_FONT_WEIGHT_ULTRA_LIGHT: 200;
@@ -868,10 +867,12 @@ declare const DWRITE_FONT_WEIGHT_HEAVY: 900;
 declare const DWRITE_FONT_WEIGHT_EXTRA_BLACK: 950;
 declare const DWRITE_FONT_WEIGHT_ULTRA_BLACK: 950;
 
+type DWRITE_FONT_STYLE = 0 | 1 | 2;
 declare const DWRITE_FONT_STYLE_NORMAL: 0;
 declare const DWRITE_FONT_STYLE_OBLIQUE: 1;
 declare const DWRITE_FONT_STYLE_ITALIC: 2;
 
+type DWRITE_FONT_STRETCH = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 declare const DWRITE_FONT_STRETCH_ULTRA_CONDENSED: 1;
 declare const DWRITE_FONT_STRETCH_EXTRA_CONDENSED: 2;
 declare const DWRITE_FONT_STRETCH_CONDENSED: 3;
@@ -883,21 +884,25 @@ declare const DWRITE_FONT_STRETCH_EXPANDED: 7;
 declare const DWRITE_FONT_STRETCH_EXTRA_EXPANDED: 8;
 declare const DWRITE_FONT_STRETCH_ULTRA_EXPANDED: 9;
 
+type DWRITE_TEXT_ALIGNMENT = 0 | 1 | 2 | 3;
 declare const DWRITE_TEXT_ALIGNMENT_LEADING: 0;
 declare const DWRITE_TEXT_ALIGNMENT_TRAILING: 1;
 declare const DWRITE_TEXT_ALIGNMENT_CENTER: 2;
 declare const DWRITE_TEXT_ALIGNMENT_JUSTIFIED: 3;
 
+type DWRITE_PARAGRAPH_ALIGNMENT = 0 | 1 | 2;
 declare const DWRITE_PARAGRAPH_ALIGNMENT_NEAR: 0;
 declare const DWRITE_PARAGRAPH_ALIGNMENT_FAR: 1;
 declare const DWRITE_PARAGRAPH_ALIGNMENT_CENTER: 2;
 
+type DWRITE_WORD_WRAPPING = 0 | 1 | 2 | 3 | 4;
 declare const DWRITE_WORD_WRAPPING_WRAP: 0;
 declare const DWRITE_WORD_WRAPPING_NO_WRAP: 1;
 declare const DWRITE_WORD_WRAPPING_EMERGENCY_BREAK: 2;
 declare const DWRITE_WORD_WRAPPING_WHOLE_WORD: 3;
 declare const DWRITE_WORD_WRAPPING_CHARACTER: 4;
 
+type DWRITE_TRIMMING_GRANULARITY = 0 | 1 | 2;
 declare const DWRITE_TRIMMING_GRANULARITY_NONE: 0;
 declare const DWRITE_TRIMMING_GRANULARITY_CHARACTER: 1;
 declare const DWRITE_TRIMMING_GRANULARITY_WORD: 2;
@@ -1067,7 +1072,7 @@ declare const FontTypeDUI: {
 
 type PlayListLockFilterMask =
   (typeof PlayListLockFilterMask)[keyof typeof PlayListLockFilterMask];
-declare const PlaylistLockFilterMask: {
+declare const PlayListLockFilterMask: {
   filter_add: 1;
   filter_remove: 2;
   filter_reorder: 4;
