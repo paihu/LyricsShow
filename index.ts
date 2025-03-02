@@ -82,6 +82,10 @@ const getTitle = (handle: IFileInfo) => {
   }
   return "";
 };
+
+const normalizePath = (base: string): string => {
+  return base.replace("*", "＊").replace(":", "：");
+};
 const getLyrics = (handle: IMetadbHandle) => {
   const lyrics: {
     raw: string[];
@@ -113,10 +117,9 @@ const getLyrics = (handle: IMetadbHandle) => {
           const title = getTitle(fileInfo);
           const artist = getArtist(fileInfo);
           if (!artist) break;
-          const path = `${obj.lyricsSearchPath}${artist.replace(
-            "*",
-            "＊"
-          )}\\${title.replace("*", "＊")}.${type}`;
+          const path = `${obj.lyricsSearchPath}${normalizePath(
+            artist
+          )}\\${normalizePath(title)}.${type}`;
           if (utils.IsFile(path)) {
             const lines = utils
               .ReadTextFile(path, utils.DetectCharset(path))
@@ -125,10 +128,9 @@ const getLyrics = (handle: IMetadbHandle) => {
           } else {
             const artist = getAlbumArtist(fileInfo);
             if (!artist) break;
-            const path = `${obj.lyricsSearchPath}${artist.replace(
-              "*",
-              "＊"
-            )}\\${title.replace("*", "＊")}.${type}`;
+            const path = `${obj.lyricsSearchPath}${normalizePath(
+              artist
+            )}\\${normalizePath(title)}.${type}`;
             if (utils.IsFile(path)) {
               const lines = utils
                 .ReadTextFile(path, utils.DetectCharset(path))
@@ -990,7 +992,7 @@ const mainMenuItem = [
         return MF_DISABLED;
       }
       const artist = getArtist(fileInfo);
-      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      const path = `${obj.lyricsSearchPath}${normalizePath(artist)}`;
       fileInfo.Dispose();
       handle?.Dispose();
       return utils.IsFolder(path) ? MF_ENABLED : MF_DISABLED;
@@ -1003,7 +1005,7 @@ const mainMenuItem = [
         return;
       }
       const artist = getArtist(fileInfo);
-      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      const path = `${obj.lyricsSearchPath}${normalizePath(artist)}`;
       fileInfo.Dispose();
       handle?.Dispose();
       if (utils.IsFolder(path)) ws.Exec(`explorer ${path}`);
@@ -1138,10 +1140,9 @@ const editMenuItem = [
         handle?.Dispose();
         return;
       }
-      const path = `${obj.lyricsSearchPath}${artist.replace(
-        "*",
-        "＊"
-      )}\\${title.replace("*", "＊")}.lrc`;
+      const path = `${obj.lyricsSearchPath}${normalizePath(
+        artist
+      )}\\${normalizePath(title)}.lrc`;
       utils.WriteTextFile(path, lyricsStr);
       fileInfo.Dispose();
       handle?.Dispose();
@@ -1157,7 +1158,7 @@ const editMenuItem = [
         return MF_DISABLED;
       }
       const artist = getArtist(fileInfo);
-      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      const path = `${obj.lyricsSearchPath}${normalizePath(artist)}`;
       fileInfo.Dispose();
       handle?.Dispose();
       return utils.IsFolder(path) ? MF_ENABLED : MF_DISABLED;
@@ -1170,7 +1171,7 @@ const editMenuItem = [
         return;
       }
       const artist = getArtist(fileInfo);
-      const path = `${obj.lyricsSearchPath}${artist.replace("*", "＊")}`;
+      const path = `${obj.lyricsSearchPath}${normalizePath(artist)}`;
       fileInfo.Dispose();
       handle?.Dispose();
       if (utils.IsFolder(path)) ws.Exec(`explorer ${path}`);
@@ -1192,6 +1193,7 @@ const menu: { [key in Mode]: MenuItems } = {
 /**
  * callbacks
  */
+const stampingOffset = 0.1;
 
 const on_paint = (gr: IJSGraphics) => {
   switch (obj.mode) {
@@ -1261,7 +1263,8 @@ const on_mouse_wheel = (step: number) => {
         if (currentLine >= 0) obj.lyrics.time[currentLine] = -1;
       } else {
         if (currentLine >= obj.lyrics.view.length) return;
-        if (!fb.IsPaused) obj.lyrics.time[currentLine + 1] = current;
+        if (!fb.IsPaused)
+          obj.lyrics.time[currentLine + 1] = current - stampingOffset;
       }
       break;
     case "EditView":
@@ -1290,7 +1293,7 @@ const on_mouse_lbtn_down: on_mouse_lbtn_down = (_x, _y) => {
     case "Edit":
       const current = fb.PlaybackTime;
       const index = calcCurrentLyricsLine(obj.lyrics.time, current);
-      obj.lyrics.time[index + 1] = current;
+      obj.lyrics.time[index + 1] = current - stampingOffset;
 
       break;
   }
@@ -1307,6 +1310,7 @@ const on_mouse_lbtn_dblclk: on_mouse_lbtn_dblclk = (_x, y) => {
         if (!afterPos) return;
         obj.step -= (afterPos - beforePos) / obj.stepHight;
       }
+      break;
     case "Edit":
       break;
   }
@@ -1324,6 +1328,7 @@ const on_mouse_rbtn_up: on_mouse_lbtn_up = (x, y) => {
 
   return true;
 };
+
 const on_key_down: on_key_down = (vkey) => {
   switch (obj.mode) {
     case "Edit":
@@ -1344,7 +1349,8 @@ const on_key_down: on_key_down = (vkey) => {
           const current = fb.PlaybackTime;
           const index = calcCurrentLyricsLine(obj.lyrics.time, current);
           if (index > obj.lyrics.view.length) return;
-          if (!fb.IsPaused) obj.lyrics.time[index + 1] = current;
+          if (!fb.IsPaused)
+            obj.lyrics.time[index + 1] = current - stampingOffset;
           break;
       }
       break;
