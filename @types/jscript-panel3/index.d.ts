@@ -1,3 +1,11 @@
+interface IAudioChunk {
+  ChannelConfig: number;
+  ChannelCount: number;
+  Data: VBArray; // You need to use toArray() on this before using.
+  SampleCount: number;
+  SampleRate: number;
+}
+
 interface IContextMenuManager {
   BuildMenu(menu: IMenuObj, base_id: number);
   Dispose();
@@ -36,7 +44,28 @@ interface IFileInfo {
   MetaValueCount(idx: number): number;
 }
 
+interface IJSBitmap{
+  readonly Height: number;
+  readonly Width: number;
+
+  Dispose(): void;
+}
+
 interface IJSGraphics {
+  Clear(colour: number);
+  DrawBitmap(
+    image: IJSBitmap,
+    dstX: number,
+    dstY: number,
+    dstW: number,
+    dstH: number,
+    srcX: number,
+    srcY: number,
+    srcW: number,
+    srcH: number,
+    opacity?: number,
+    angle?: number
+  )
   DrawEllipse(
     centreX: number,
     centreY: number,
@@ -134,7 +163,22 @@ interface IJSGraphics {
     radiusY: number,
     colour: number
   );
+  PopLayer():void;
+  PushLayer(x: number, y: number, w: number, h: number):void;
   WriteText(
+    text: string,
+    font: string,
+    colour: number,
+    startX: number,
+    startY: number,
+    w: number,
+    h: number,
+    textAlignment?: number,
+    paragraphAlignment?: number,
+    wordWrapping?: number,
+    trimmingGranularity?: number
+  );
+  WriteText2(
     text: string,
     font: string,
     colour: number,
@@ -156,6 +200,19 @@ interface IJSGraphics {
     h: number,
     verticalOffset?: number
   );
+  WriteTextSimple(
+    text: string,
+    font: string,
+    colour: number,
+    startX: number,
+    startY: number,
+    w: number,
+    h: number,
+    textAlignment?: number,
+    paragraphAlignment?: number,
+    wordWrapping?: number,
+    trimmingGranularity?: number
+  );
 }
 
 interface IJSImage {
@@ -164,6 +221,7 @@ interface IJSImage {
   readonly Height: number;
   ApplyEffect(effect: ImageEffect);
   Clone(): IJSImage;
+  CrreateBitmap(): IJSBitmap;
   Dispose();
   /**
    *
@@ -204,6 +262,7 @@ interface IMenuObj {
     lastItemId: number,
     selectedItemId: number
   );
+  SetDefault(item_id:number);
   Dispose();
   /**
    *
@@ -224,34 +283,47 @@ interface IMetadbHandle {
   Compare(handle: IMetadbHandle): boolean;
   Dispose();
   GetAlbumArt(artId?: AlbumArtId, wantStub?: boolean): IJSImage | null;
-  GetAlbumArtAsync(windowId: number, artId?: AlbumArtId, wantStub?: boolean);
+  GetAlbumArtAsync(windowId: number, artId?: AlbumArtId, wantStub?: boolean); // on_get_album_art_done
   GetAlbumArtEmbedded(artId?: AlbumArtId): IJSImage | null;
+  GetAlbumArtThumbAsync(windowId: number, artId?: AlbumArtId, maxSize?: number); // on_get_album_art_done
   GetFileInfo(): IFileInfo;
   IsInLibrary(): boolean;
+  SetFirstPlayed(fitstPlayed: number);
+  SetLastPlayed(lastPlayed: number);
+  SetLoved(loved: boolean);
+  SetPlayCount(playCount: number);
+  SetRating(rating: number);
+  SetSkipcount(skipCount: number);
   ShowAlbumArtViewer(artId?: AlbumArtId, wantStub?: boolean);
+  ShowAlbumArtViewer2(artId?: AlbumArtId, type?: AlbumArtType);
 }
 interface IMetadbHandleList {
   readonly Count: number;
   AddItem(handle: IMetadbHandle);
   AddItems(handleList: IMetadbHandleList);
   AttachImage(imagePath: string, artId?: AlbumArtId);
+  AttachImage2(imagePath: string, artId?: AlbumArtId,format?:number); // format: 0 = jpg,1 = webp
   CalcTotalDuration(): number;
   CalcTotalSize(): number;
+  ClearStats();
   Clone(): IMetadbHandleList;
   CopyToClipboard(): boolean;
   DoDragDrop(effect: number): number;
+  Drop(count:number);
   Dispose();
   Find(handle: IMetadbHandle): number;
   GetItem(idx: number): IMetadbHandle;
   GetLibraryRelativePaths(): VBArray<string>;
   GetOtherInfo(): string;
   GetQueryItems(query: string): IMetadbHandleList;
+  GroupByTag(tag: string);
   InsertItem(idx: number, handle: IMetadbHandle);
   InsertItems(idx: number, handleList: IMetadbHandleList);
   MakeDifference(handleList: IMetadbHandleList);
   MakeIntersection(handleList: IMetadbHandleList);
   OptimiseFileLayout(minimise?: boolean);
   Randomise();
+  RefreshStats();
   RemoveAll();
   RemoveAttachedImage(artId?: AlbumArtId);
   RemoveAttachedImages();
@@ -260,11 +332,13 @@ interface IMetadbHandleList {
   RemoveDuplicatesByFormat(pattern: string);
   RemoveFromIdx(from: number, num: number);
   ReplaceItem(idx: number, handle: IMetadbHandle);
+  Reverse();
   RunContextCommand(command: string);
   SaveAs(path: string);
   SortByFormat(pattern: string, direction: number);
   SortByPath();
   SortByRelativePath();
+  Take(count): IMetadbHandleList;
   UpdateFileInfoFromJSON(str: string);
 }
 interface IPlayingItemLocation {
@@ -330,6 +404,7 @@ interface ITooltip {
 interface Console {
   GetLines(withTimestamp?: boolean): VBArray<string>;
   ClearBacklog();
+  log(messate: string|number|boolean|array|object);
 }
 declare const console: Console;
 
@@ -337,6 +412,7 @@ interface fb {
   AlwaysOnTop: boolean;
   readonly ComponentPath: string;
   CursorFollowPlayback: boolean;
+  readonly CustomVolume: number;
   readonly FoobarPath: string;
   readonly IsPaused: boolean;
   readonly IsPlaying: boolean;
@@ -346,6 +422,7 @@ interface fb {
   readonly ProfilePath: string;
   ReplayGainMode: ReplayGainMode;
   StopAfterCurrent: boolean;
+  readonly VersionString: string;
   Volume: number;
 
   // Shortcuts to main menu commands
@@ -367,7 +444,7 @@ interface fb {
   VolumeMute();
   VolumeUp();
 
-  AcquireSelectionHolder(): ISelectionHolder;
+  // AcquireSelectionHolder(): ISelectionHolder;
   AddLocationsAsync(windowId: number, paths: string[]): number;
   CheckClipboardContents(): boolean;
   CheckComponent(name: string): boolean;
@@ -376,14 +453,36 @@ interface fb {
   CreateHandleList(handle?: IMetadbHandle): IMetadbHandleList;
   CreateMainMenuManager(rootName: string): IMainMenuManager;
   GetClipboardContents(): IMetadbHandleList;
+  EnableAdvancedLogging();
+  /** return JSON array in string form. so you need to user JSON.parse on the result */
+  /**
+   * Checked // boolean
+   * Disabled // boolean
+   * FullPath // string, the same full path you'd supply to fb.RunMainMenuCommand
+   * HiddenByDefault // boolean
+   * Radio // boolean
+   * Type // string "Fixed" or "Dynamic"
+   * Visible // boolean
+   */
+  EnumerateMainMenuCommands();
+  GetActiveDsps(): VBArray;
+  GetAlbumArtStub(artId?: AlbumArtId): IJSImage | null;
+  GetAudioChukn(requestedLength:number, offset?: number): IAudioChunk;
+  GetClipboardContents(): IMetadbHandleList;
   /** return JSON array in string form. so you need to user JSON.parse on the result */
   GetDSPPresets(): string;
   GetFocusItem(): IMetadbHandle;
   GetLibraryItems(query: string): IMetadbHandleList;
   GetNowPlaying(): IMetadbHandle | null;
   /** return JSON array in string form. so you need to user JSON.parse on the result */
+  /**
+   * active"  /boolean
+   * device_id" // string
+   * name" // string
+   * output_id // string
+   */
   GetOutputDevices(): string;
-  GetSelection(flags: number): IMetadbHandleList;
+  GetSelection(flags?: number): IMetadbHandleList;
   GetSelectionType(): SelectionType;
   IsLibraryEnabled(): boolean;
   /**
@@ -410,6 +509,7 @@ interface fb {
    */
   SetOutputDevice(outputId: string, deviceId: string);
   ShowLibrarySearchUI(query: string);
+  ShowPictureViewer(path: string);
   TitleFormat(pattern: string): ITitleFormat;
 }
 export declare const fb: fb;
@@ -420,11 +520,68 @@ interface plman {
   readonly PlayingPlaylist: number;
   readonly PlaylistCount: number;
   readonly RecyclerCount: number;
+
+  AddLocations(playlistIndex: number, paths: string[], select?: boolean);
+  AddPlaylistLock(playlistIndex: number, mask: PlayListLockFilterMask): boolean;
+  ClearPlaylist(playlistIndex: number);
+  ClearPlaylistSelection(playlistIndex: number);
+  CreateAutoPlaylist(playlistIndex: number, name: string, query: string, sort?: string, flags?: number): number; // return -1 on failure  flags: 0 = not sorted, 1 = force sort
+  CreatePlaylist(playlistIndex?: number, name?: string): number;
+  DuplicatePlaylist(playlistIndex: number, name: string): number;
+  ExecutePlaylistDefaultAction(playlistIndex: number, playlistItemIndex: number);
+  FindByGUID(str: string);
+  FindOrCreatePlayList(name: string, unlocked: boolean): number;
+  FindPlaylist(name:string): number;  // return -1 if not found
+  GetGUID(playlistIndex: number): string;
+  GetPlaybackOrders(): VBArray;  // use .toArray() to get the array
+  GetPlayingIttemLocation(): IPlayingItemLocation;
+  GetPlaylistFocusItemIndex(playlistIndex: number): number; // return -1 if not found
+  GetPlaylistItemCount(playlistIndex: number): number;
+  GetPlaylistItems(playlistIndex: number): IMetadbHandleList;
+  GetPlaylistLockFilterMask(playlistIndex: number): PlayListLockFilterMask|-1;
+  GetPlaylistLockName(playlistIndex: number): string;
+  GetPlaylistName(playlistIndex: number): string;
+  GetPlaylistSelectedIndexes(playlistIndex: number): VBArray;
+  GetPlaylistSelectedItems(playlistIndex: number): IMetadbHandleList;
+  GetQueryItems(playlistIndex: number, query: string): IMetadbHandleList;
+  GetRecyclerItems(index: number): IMetadbHandleList;
+  GetRecyclerName(index: number): string;
+  InsertPlaylistItems(playlistIndex: number, base: number, handleList: IMetadbHandleList, select?: boolean);
+  InsertPlaylistItemsFilter(playlistIndex: number, base: number, handleList: IMetadbHandleList, select?: boolean);
+  InvertSelection(playlistIndex: number);
+  IsAutoPlaylist(playlistIndex: number): boolean;
+  IsPlaylistItemSelected(playlistIndex: number, playlistItemIndex: number): boolean;
+  IsPlaylistLocked(playlistIndex: number): boolean;
+  MovePlaylist(from: number, to:number);
+  MovePlaylistSelection(playlistIndex: number, delta: number);
+  MovePlaylistSlelectionV2(playlistIndex: number, newPos: number);
+  RecyclerPurge(affectedItems: number[]);
+  RecyclerRestore(index: number);
+  RemovePlaylist(playlistIndex: number);
+  RemovePlaylistLock(playlistIndex: number):boolean;
+  RemovePlaylists(playlistIndexes: number[]);
+  RemovePlaylistSelection(playlistIndex: number, crop: boolean);
+  RemovePlaylistSwitch(playlistIndex:number)
+  RenamePlaylist(playlistIndex: number, name: string);
+  ReplacePlaylistItem(playlistIndex: number, playlistItemIndex: number, handle: IMetadbHandle);
+  SelectQueryItems(playListIndex: number, query: string);
+  SetActivePlaylistContext();
+  SetPlaylistFocusItem(playlistIndex: number, playlistItemIndex: number);
+  SetPlaylistSelection(playlistIndex: number, affectedItems: number[], state: boolean);
+  SetPlaylistSelectionSingle(playlistIndex: number, playlistItemIndex: number, state: boolean);
+  ShowAutoPlaylistUI(playlistIndex: number);
+  ShowPlaylistLockUI(playlistIndex: number);
+  SortByFormat(playlistIndex: number, pattern: string, selectedItemsOnly?: boolean);
+  SortByFormatV2(playlistIndex: number, pattern: string, direction?: number); // direction: 1 = ascending, -1 = descending
+  SortPlaylistsByName(direction?: numbeer); // direction: 1 = ascending, -1 = descending
+  UndoBackup(playlistIndex: number);
+
 }
 declare const plman: plman;
 
 interface utils {
   readonly Version: number;
+  readonly VersionString: string;
   CalcTextWidth(
     text: string,
     fontName: string,
@@ -435,6 +592,9 @@ interface utils {
   ): number;
   CheckFont(name: string): boolean;
   ColourPicker(defaultColour: number): number;
+  ConvertToAscii(str: string): string;
+  CopyFile(from: string, to:string, override?: boolean): boolean;
+  CopyFolder(from: string, to:string, override?: boolean, recursive?: boolean): boolean;
   CreateFolder(path: string): boolean;
   CreateImage(w: number, h: number): IJSImage;
   CreateProfiler(name?: string): IProfiler;
@@ -460,13 +620,15 @@ interface utils {
   ): ITextLayout;
   DateStringToTimestamp(str: string): number;
   DetectCharset(path: string): number;
-  DownloadFileAsync(windowId: number, url: string, path: string);
+  DownloadFileAsync(windowId: number, url: string, path: string); // on_download_file_done
+  DownloadImageAsync(windowId: number, url: string); // on_download_image_done
   FormatDuration(seconds: number): string;
   FormatFileSize(bytes: number): string;
   GetClipboardText(): string;
+  GetCountryFlag(countryorCode:string): string;
   GetFileSize(path: string): number;
   GetLastModified(path: string): number;
-  GetSysnumber(idx: number): number;
+  GetSysColour(index: number): number;
   GetSystemMetrics(idx: number): number;
   /**
    *
@@ -479,6 +641,7 @@ interface utils {
     excludeMask?: number,
     includeMask?: number
   ): VBArray<string>;
+  HashString(str: string):string;
   /**
    *
    * @param windowId
@@ -509,6 +672,7 @@ interface utils {
   ListFiles(folder: string, recursive: boolean): VBArray<string>;
   ListFolders(folder: string, recursive: boolean): VBArray<string>;
   ListFonts(): VBArray<string>;
+  LoadBitmap(path, maxSize?:number): IJSBitmap | null;
   LoadImage(path: string): IJSImage | null;
   LoadImageAsync(windowId: number, path: string);
   LoadSVG(pathOrXML: string, maxWidth: number): IJSImage | null;
@@ -520,6 +684,7 @@ interface utils {
    * @return MessageBoxReturnValues (see IDOK...IDNO)
    */
   MessageBox(prompt: string, title: string, flags: number): number;
+  Now(): number; // Math.round(new Date().getTime() / 1000)
   ReadINI(
     path: string,
     section: string,
@@ -528,8 +693,10 @@ interface utils {
   ): string;
   ReadTextFile(path: string, codepage?: number): string;
   ReadUTF8(path: string): string;
+  RemoveFolderRecursive(path, option?:number): boolean;
   RemovePath(path: string): boolean;
-  ReplaceIllegalChars(str: string, modern?: boolean): string;
+  RenamePath(from: string, to: string): boolean;
+  ReplaceIllegalChars(str: string, modern?: boolean, stripTrailingPeriods?: boolean): string;
   Run(app: string, params?: string);
   /**
    *
@@ -548,6 +715,7 @@ interface utils {
    * @param defaultValue
    */
   TextBox(prompt: string, title: string, defaultValue?: string): string;
+  TimestampToDateString(ts: number):string;  // ts is unixepoch
   WriteINI(path: string, section: string, key: string, value: string): boolean;
   /**
    * Files are written as UTF8 without BOM.
@@ -562,6 +730,7 @@ interface Window {
   DPI: number;
   Height: number;
   ID: number;
+  IsDark: boolean;
   IsDefaultUI: boolean;
   IsVisible: boolean;
   MaxHeight: number;
@@ -572,11 +741,6 @@ interface Window {
   Width: number;
   ClearInterval(timerID: number);
   ClearTimeout(timerID: number);
-  /**
-   *
-   * @param classList  https://docs.microsoft.com/en-gb/windows/win32/controls/parts-and-states
-   */
-  CreateThemeManager(classList: string): IThemeManager | null;
   CreatePopupMenu(): IMenuObj;
   CreateTooltip(fontName?: string, fontSizePx?: number): ITooltip;
   /**
@@ -631,7 +795,10 @@ interface Window {
   RepaintRect(x: number, y: number, w: number, h: number);
   SetCursor(id: string);
   SetInterval(func: () => void, delay: number): number;
+  SetPlaylistSelectionTracking();
+  SetPlaylistTracking();
   SetProperty(name: string, value: string | number | boolean | null): void;
+  SetSelection(handleList: IMetadbHandleList, tpe: SelectionType)
   SetTimeout(func: () => void, delay: number): number;
   SetTooltipFont(fontName: string, fontSizePx: number);
   ShowConfigure();
