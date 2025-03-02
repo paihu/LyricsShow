@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "license": "MIT",
-  "packageManager": "pnpm@8.14.1",
+  "packageManager": "pnpm@10.1.0",
   "devDependencies": {
     "@swc/core": "^1.11.5",
     "@types/activex-scripting": "^1.0.12",
