@@ -19,7 +19,7 @@
   },
   "scripts": {
     "fix": "prettier -w index.ts && eslint --fix index.ts",
-    "build": "tsc",
+    "build": "tsup index.ts",
     "watch": "tsc -w"
   }
 }
