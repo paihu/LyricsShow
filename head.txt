@@ -3,5 +3,5 @@
 // @author "paihu"
 // @version "0.1"
 // @import "%fb2k_component_path%helpers.txt"
-// @import "%fb2k_profile_path%LyricsShow\index.js"
+// @import "%fb2k_profile_path%LyricsShow\dist\index.js"
 // ==/PREPROCESSOR==

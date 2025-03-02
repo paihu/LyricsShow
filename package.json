@@ -5,18 +5,20 @@
   "license": "MIT",
   "packageManager": "pnpm@8.14.1",
   "devDependencies": {
+    "@swc/core": "^1.11.5",
     "@types/activex-scripting": "^1.0.12",
     "@types/windows-script-host": "^5.8.6",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^8.25.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "prettier": "^3.2.5",
-    "typescript": "^5.3.3"
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.5.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
   },
   "scripts": {
-    "fix": "prettier -w index.ts && eslint --fix index.ts" ,
+    "fix": "prettier -w index.ts && eslint --fix index.ts",
     "build": "tsc",
     "watch": "tsc -w"
   }
