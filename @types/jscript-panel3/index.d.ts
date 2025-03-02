@@ -1,4 +1,3 @@
-/// <reference types="activex-interop" />
 
 declare global {
   interface IAudioChunk {
