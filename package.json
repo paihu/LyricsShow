@@ -6,7 +6,6 @@
   "packageManager": "pnpm@10.1.0",
   "devDependencies": {
     "@eslint/js": "^9.21.0",
-    "@swc/core": "^1.11.5",
     "@types/jscript-panel3": "workspace:*",
     "@types/windows-script-host": "^5.8.6",
     "eslint": "^9.21.0",
