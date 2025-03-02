@@ -1,38 +1,3 @@
-import {
-  window,
-  IFileInfo,
-  IMetadbHandle,
-  utils,
-  IJSImage,
-  IMenuObj,
-  MF_STRING,
-  DWRITE_FONT_STYLE_ITALIC,
-  DWRITE_FONT_STYLE_NORMAL,
-  ITextLayout,
-  DWRITE_FONT_STRETCH_NORMAL,
-  RGB,
-  fb,
-  DWRITE_TEXT_ALIGNMENT_CENTER,
-  DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-  DWRITE_WORD_WRAPPING_WRAP,
-  IJSGraphics,
-  setAlpha,
-  MF_CHECKED,
-  MF_UNCHECKED,
-  MF_ENABLED,
-  MF_DISABLED,
-  PlaybackStopReason,
-  VK_LEFT,
-  VK_RIGHT,
-  VK_RETURN,
-  VK_UP,
-  VK_DOWN,
-  on_key_down,
-  on_mouse_lbtn_dblclk,
-  on_mouse_lbtn_up,
-  on_mouse_lbtn_down,
-} from "./@types/jscript-panel3";
-
 const RGBRe = /^#[0-9a-fA-F]{6}$/;
 const TimeTagRe = /\[([\d.:]+)\]/;
 const TimeTagAllRe = /\[([\d.:]+)\]/g;
@@ -41,7 +6,6 @@ const parseRGB = (str: string): number | undefined => {
   if (!str.match(RGBRe)) return;
   return 0xff000000 & parseInt(str.substring(1), 16);
 };
-
 const ws = new ActiveXObject("WScript.Shell");
 
 type LyricsTags = "LYRICS" | "UNSYNCED LYRICS";
