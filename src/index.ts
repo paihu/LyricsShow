@@ -105,6 +105,16 @@ const getLyrics = (handle: IMetadbHandle) => {
           }
       }
     });
+    if(lyrics.raw.length===0){
+      const title = getTitle(fileInfo);
+      if(title){
+        lyrics.raw.push(title);
+      }
+      const artist = getArtist(fileInfo);
+      if(artist){
+        lyrics.raw.push(artist);
+      }
+    }
   } finally {
     fileInfo.Dispose();
   }
@@ -938,10 +948,10 @@ const mainMenuItem = [
   {
     caption: "EditMode",
     flag: () => {
-      return obj.lyrics.raw.length > 0 ? MF_ENABLED : MF_DISABLED;
+      return obj.lyrics.raw.length > 2 ? MF_ENABLED : MF_DISABLED;
     },
     func: () => {
-      if (obj.lyrics.raw.length === 0) return;
+      if (obj.lyrics.raw.length <= 2) return;
       obj.mode = obj.lyricsIsSync ? "EditView" : "Edit";
       window.Repaint();
     },
