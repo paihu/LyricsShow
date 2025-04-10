@@ -85,9 +85,7 @@ const getLyrics = (handle: IMetadbHandle) => {
             artist
           )}\\${normalizePath(title)}.${type}`;
           if (utils.IsFile(path)) {
-            const lines = utils
-              .ReadTextFile(path, utils.DetectCharset(path))
-              .split(/\r?\n/);
+            const lines = utils.ReadUTF8(path).split(/\r?\n/);
             lyrics.raw.push(...lines);
           } else {
             const artist = getAlbumArtist(fileInfo);
@@ -96,22 +94,20 @@ const getLyrics = (handle: IMetadbHandle) => {
               artist
             )}\\${normalizePath(title)}.${type}`;
             if (utils.IsFile(path)) {
-              const lines = utils
-                .ReadTextFile(path, utils.DetectCharset(path))
-                .split(/\r?\n/);
+              const lines = utils.ReadUTF8(path).split(/\r?\n/);
               lyrics.raw.push(...lines);
             }
             break;
           }
       }
     });
-    if(lyrics.raw.length===0){
+    if (lyrics.raw.length === 0) {
       const title = getTitle(fileInfo);
-      if(title){
+      if (title) {
         lyrics.raw.push(title);
       }
       const artist = getArtist(fileInfo);
-      if(artist){
+      if (artist) {
         lyrics.raw.push(artist);
       }
     }
